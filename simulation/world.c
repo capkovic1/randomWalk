@@ -8,12 +8,13 @@ World* world_create(int width , int height) {
   world->width = width;
 
   world->obstacle = malloc(height * sizeof(_Bool*));
-  world->visited = malloc(height * sizeof(_Bool*));
+
+  world->visited = malloc(height * sizeof(_Bool*)); 
 
   for (int i = 0; i < height; i++) {
     world->obstacle[i] = malloc(width *sizeof(_Bool));
     world->visited[i] = malloc(width * sizeof(_Bool));
-  }
+  }   
 
   return world;
 }
@@ -30,7 +31,7 @@ void world_destroy(World *world) {
   free(world);
 }
 _Bool world_is_valid_position(World *world, Position pos) {
-  if (pos.x < 0|| pos.y < 0 || pos.x > world->width || pos.y > world->height) {
+  if (pos.x < 0|| pos.y < 0 || pos.x >= world->width || pos.y >= world->height) {
     return 0;
   }
   return 1;
@@ -86,4 +87,12 @@ World* world_generate_random(int width , int height , double obstacle_ratio){
 
   return world;
 
+}
+
+void reset_visited(World * world){
+  for (int i = 0; i < world->height; i++) {
+    for (int j = 0; j < world->width; j++) {
+      world->visited[i][j] = 0;
+    }
+  }
 }

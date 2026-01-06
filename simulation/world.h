@@ -22,5 +22,6 @@ _Bool world_is_accessible(World* world, Position to);
 _Bool world_load_from_file(World* world, const char* filename);
 _Bool world_save_to_file(const World* world, const char* filename);
 World* world_generate_random(int width, int height, double obstacle_ratio);
+void reset_visited(World * world);
 
 #endif 

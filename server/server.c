@@ -34,31 +34,62 @@ void server_run(void) {
 
     printf("[SERVER] Ready\n");
 
-while (1) {
+ while (1) {
     int client_fd = accept(server_fd, NULL, NULL);
     if (client_fd < 0) continue;
 
     Message msg;
     read(client_fd, &msg, sizeof(msg));
 
+    // 1. NAJPRV VYKONAJ AKCIU PODĽA TYPU SPRÁVY
     if (msg.type == MSG_SIM_RUN) {
-        printf("[SERVER] SIM_RUN\n");
-        simulation_run(state.sim, (Position){msg.x, msg.y});
-    }
-    else if (msg.type == MSG_SIM_RESET) {
-        printf("[SERVER] SIM_RESET\n");
-        reset_stats(stats);
-    }
+      
+      printf("[SERVER] SIM_RUN\n");
+      simulation_run(state.sim, (Position){msg.x, msg.y});
     
+    } else if (msg.type == MSG_SIM_STEP) {
+      
+      printf("[SERVER] SIM_STEP\n");
+      walker_move(state.sim->walker, state.sim->world);
     
-    StatsMessage out = {
-        .total_runs = stats->total_runs,
-        .succ_runs = stats->succ_runs,
-        .total_steps = stats->total_steps
-    };
+    } else if (msg.type == MSG_SIM_RESET) {
 
+      printf("[SERVER] SIM_RESET\n");
+      reset_stats(stats);
+      walker_reset(state.sim->walker, (Position){msg.x , msg.y});
+      reset_visited(state.sim->world); 
+
+    } else if (msg.type == MSG_SIM_INIT) {
+        printf("[SERVER] SIM_INIT\n");
+        state.sim->walker->pos.x = msg.x;
+        state.sim->walker->pos.y = msg.y;
+    }
+
+    // 2. AŽ TERAZ NAPLŇ ODPOVEĎ ČERSTVÝMI DÁTAMI
+    StatsMessage out;
+    memset(&out, 0, sizeof(out));
+
+    // Základné údaje (musia byť po simulácii, aby boli aktuálne)
+    out.curr_steps = state.sim->walker->steps_made;
+    out.total_runs = state.sim->stats->total_runs;
+    out.succ_runs =  state.sim->stats->succ_runs;
+    out.total_steps =  state.sim->stats->total_steps;
+    out.width = state.sim->world->width;
+    out.height = state.sim->world->height;
+    out.posX = state.sim->walker->pos.x;
+    out.posY = state.sim->walker->pos.y;
+
+    // Kopírovanie polí s ochranou proti pretečeniu (max 50x50)
+    for (int y = 0; y < out.height && y < 50; y++) {
+        for (int x = 0; x < out.width && x < 50; x++) {
+            out.visited[y][x] = state.sim->world->visited[y][x];
+            out.obstacle[y][x] = state.sim->world->obstacle[y][x];
+        }
+    }
+
+    // 3. ODPOŠLI A ZAVRI
     write(client_fd, &out, sizeof(out));
     close(client_fd);
-}
+  }
 }
 

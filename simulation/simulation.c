@@ -41,7 +41,6 @@ void simulation_destroy(Simulation *sim) {
   stat_destroy(sim->stats);
   free(sim);
 }
-
 _Bool simulation_run(Simulation *sim , Position pos) {
   SimulationConfig config = sim->config;
 

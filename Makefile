@@ -1,36 +1,57 @@
+# Kompilátor a flagy
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -Icommon -Isimulation -Iserver -Iclient
+CFLAGS = -Wall -Wextra -g -I./common -I./client -I./server -I./simulation
+LDFLAGS = -lncurses
 
-SERVER_SRC = \
-	server/main.c \
-	server/server.c \
-	simulation/simulation.c \
-	simulation/walker.c \
-	simulation/world.c
+# Adresáre
+CLIENT_DIR = client
+SERVER_DIR = server
+SIMULATION_DIR = simulation
+COMMON_DIR = common
 
-CLIENT_SRC = \
-	client/main.c \
-	client/client.c
+# Všetky zdrojové súbory
+CLIENT_SRCS = $(CLIENT_DIR)/main.c $(CLIENT_DIR)/client.c $(CLIENT_DIR)/ui.c
+SERVER_SRCS = $(SERVER_DIR)/main.c $(SERVER_DIR)/server.c
+SIMULATION_SRCS = $(SIMULATION_DIR)/simulation.c $(SIMULATION_DIR)/walker.c $(SIMULATION_DIR)/world.c
 
-SERVER_OBJ = $(SERVER_SRC:.c=.o)
-CLIENT_OBJ = $(CLIENT_SRC:.c=.o)
+# Objektové súbory
+CLIENT_OBJS = $(CLIENT_SRCS:.c=.o)
+SERVER_OBJS = $(SERVER_SRCS:.c=.o)
+SIMULATION_OBJS = $(SIMULATION_SRCS:.c=.o)
 
-SERVER_BIN = server_app
-CLIENT_BIN = client_app
+# Hlavičkové súbory
+CLIENT_HDRS = $(CLIENT_DIR)/client.h $(CLIENT_DIR)/ui.h
+SERVER_HDRS = $(SERVER_DIR)/server.h $(SERVER_DIR)/server_state.h
+COMMON_HDRS = $(COMMON_DIR)/common.h $(COMMON_DIR)/config.h $(COMMON_DIR)/ipc.h \
+              $(COMMON_DIR)/messages.h $(COMMON_DIR)/types.h
 
-.PHONY: all clean
+# Executables
+CLIENT_EXEC = client_app
+SERVER_EXEC = server_app
 
-all: $(SERVER_BIN) $(CLIENT_BIN)
+# Default target
+all: $(CLIENT_EXEC) $(SERVER_EXEC)
 
-$(SERVER_BIN): $(SERVER_OBJ)
-	$(CC) $(CFLAGS) $^ -o $@
+# Klient (používa ncurses)
+$(CLIENT_EXEC): $(CLIENT_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_OBJS) $(LDFLAGS)
 
-$(CLIENT_BIN): $(CLIENT_OBJ)
-	$(CC) $(CFLAGS) $^ -o $@ -lncurses
+# Server (nepoužíva ncurses)
+$(SERVER_EXEC): $(SERVER_OBJS) $(SIMULATION_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(SERVER_OBJS) $(SIMULATION_OBJS)
 
+# Pravidlo pre kompiláciu .c súborov
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Vyčistenie
 clean:
-	rm -f $(SERVER_OBJ) $(CLIENT_OBJ) $(SERVER_BIN) $(CLIENT_BIN)
+	rm -f $(CLIENT_EXEC) $(SERVER_EXEC)
+	find . -name "*.o" -type f -delete
+	find . -name "*~" -type f -delete
 
+# Pre účely ladenia/testovania
+test: $(SERVER_EXEC) $(CLIENT_EXEC)
+	@echo "Build complete. Run ./$(SERVER_EXEC) and ./$(CLIENT_EXEC) separately."
+
+.PHONY: all clean test

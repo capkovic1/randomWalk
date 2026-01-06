@@ -1,5 +1,6 @@
 #include "walker.h"
 #include "world.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 Walker* walker_create(Position start ,MoveProbabilities probs) {
@@ -44,6 +45,11 @@ _Bool walker_move(Walker *walker, World *world) {
   }
 
   if(world_is_valid_position(world, newPosition)) {
+    if ((walker->pos.x > 0 && walker->pos.x < 50) || (walker->pos.y > 0 && walker->pos.y < 50)){
+      world->visited[walker->pos.y][walker->pos.x] = 1;
+    } else {
+      printf("Chyba zapisanie vvisited\n");
+    }
     walker->pos = newPosition;
     walker->steps_made++;
     if(walker->pos.x == 0 && walker->pos.y == 0) {
