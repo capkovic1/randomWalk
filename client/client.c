@@ -78,7 +78,8 @@ void client_run(void) {
   case UI_SETUP_SIM:
     // Zavolame novu metodu (odovzdavame adresy premennych cez &)
     draw_setup(&x, &y, &K, &runs, &width, &height, probs, mode);
-    
+    int originalx = x;
+    int originaly = y;  
     // Po ukonceni setupu odosleme specialnu Message na server
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
     struct sockaddr_un addr = {0};
@@ -146,7 +147,7 @@ void client_run(void) {
           stats = send_command(MSG_SIM_STEP, x, y);
         
         } else if (ch == 'c') {
-        
+            
           stats = send_command(MSG_SIM_RESET, x, y);
         
         } else if (ch == 'q') {

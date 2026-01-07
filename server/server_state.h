@@ -2,6 +2,8 @@
 #include "../simulation/simulation.h"
 
 typedef struct {
-    Simulation *sim;
+  Simulation *sim;
+  int start_x;
+  int start_y;
 } ServerState;
 

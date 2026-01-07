@@ -51,9 +51,9 @@ void server_run(void) {
     } else if (msg.type == MSG_SIM_RESET) {
       if (state.sim != NULL) {
 
-        printf("[SERVER] SIM_RESET to (%d , %d)\n" , msg.x,msg.y);
+        printf("[SERVER] SIM_RESET to (%d , %d)\n" , state.start_x, state.start_y);
         reset_stats(state.sim->stats);
-        walker_reset(state.sim->walker, (Position){start_x , start_y});
+        walker_reset(state.sim->walker, (Position){state.start_x , state.start_y});
         reset_visited(state.sim->world);
         reset_obstacles(state.sim->world);
 
@@ -112,8 +112,8 @@ void server_run(void) {
       state.sim = simulation_create(new_config);
     
       // Nastavenie štartovacej pozície
-      start_x = msg.x;
-      start_y = msg.y;
+      state.start_x = msg.x;
+      state.start_y = msg.y;
       state.sim->walker->pos.x = msg.x;
       state.sim->walker->pos.y = msg.y;
 
