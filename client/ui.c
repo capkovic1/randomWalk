@@ -16,28 +16,47 @@ UIState draw_mode_menu(int *mode) {
     if (ch == 'q') return UI_EXIT;
     return UI_MENU_MODE;
 }
-void draw_setup(int *x, int *y, int *K, int *runs, int mode) {
-    echo();
+void draw_setup(int *x, int *y, int *K, int *runs, int *width, int *height, int probs[4], int mode) {
     clear();
+    echo();      // Zapne zobrazovanie písaných znakov
+    curs_set(1); // Zobrazí kurzor
 
-    mvprintw(2, 4, "Setup simulacie");
+    mvprintw(1, 2, "--- KONFIGURACIA SIMULACIE ---");
 
-    mvprintw(4, 6, "Start X: ");
+    // 1. Rozmery sveta
+    mvprintw(3, 2, "Sirka sveta (1-50): ");
+    scanw("%d", width);
+    mvprintw(4, 2, "Vyska sveta (1-50): ");
+    scanw("%d", height);
+
+    // 2. Startovacia pozicia
+    mvprintw(6, 2, "Startovacia pozicia X: ");
     scanw("%d", x);
-
-    mvprintw(5, 6, "Start Y: ");
+    mvprintw(7, 2, "Startovacia pozicia Y: ");
     scanw("%d", y);
 
-    mvprintw(6, 6, "Max steps K: ");
+    // 3. Pravdepodobnosti
+    mvprintw(9, 2, "Pravdepodobnosti (sucet musi byt 100):");
+    mvprintw(10, 4, "Hore (Up): ");    scanw("%d", &probs[0]);
+    mvprintw(11, 4, "Dole (Down): ");  scanw("%d", &probs[1]);
+    mvprintw(12, 4, "Vlavo (Left): "); scanw("%d", &probs[2]);
+    mvprintw(13, 4, "Vpravo (Right): "); scanw("%d", &probs[3]);
+
+    // 4. Parametre simulacie
+    mvprintw(15, 2, "Max krokov (K): ");
     scanw("%d", K);
 
-    if (mode == 2) {
-        mvprintw(7, 6, "Pocet behov: ");
+    if (mode == 2) { // Ak je zvoleny SUMMARY MOD (predpokladam podla tvojho menu)
+        mvprintw(16, 2, "Pocet replikacii (N): ");
         scanw("%d", runs);
+    } else {
+        *runs = 1;
     }
 
-    noecho();
+    noecho();     // Vypne spatne echo
+    curs_set(0);  // Schova kurzor
 }
+
 void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50], _Bool visited[50][50]) {
     // Začíname vykresľovať od riadku 3 (aby sme mali miesto pre hlavičku)
     int y_offset = 3;
@@ -61,6 +80,8 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
                 attron(COLOR_PAIR(3));  // Navštívené - zelené
                 mvprintw(screen_y, screen_x, ". ");
                 attroff(COLOR_PAIR(3));
+            } else if (world_x == 0 && world_y == 0) {
+              mvprintw(screen_y, screen_x, "O ");
             } else {
                 mvprintw(screen_y, screen_x, "  ");  // Prázdne - čierne
             }

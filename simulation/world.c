@@ -96,3 +96,12 @@ void reset_visited(World * world){
     }
   }
 }
+void reset_obstacles(World * world) {
+  for (int i = 0; i < world->height; i++) {
+    for (int j = 0; j < world->width; j++) {
+      world->obstacle[i][j] = 0;
+    }
+  }
+
+}
+

@@ -7,13 +7,20 @@ typedef enum {
   MSG_SIM_RESET = 2,
   MSG_SIM_GET_STATS =3,
   MSG_SIM_INIT,
-  MSG_SIM_STEP
+  MSG_SIM_STEP,
+  MSG_SIM_CONFIG
 }MessageType;
 
 typedef struct {
-    MessageType type;
-    int x;
-    int y;
+  MessageType type;
+  int x;
+  int y;
+  int width;
+  int height;
+  int max_steps;
+  int replications;
+  int probs[4];
+
 } Message;
 typedef struct {
   int total_steps;
