@@ -43,6 +43,21 @@ _Bool walker_move(Walker *walker, World *world) {
   } else {
     newPosition.x += 1;
   }
+    
+  if(newPosition.x >= world->width) {
+    newPosition.x %= world->width;
+  }
+  if (newPosition.y >= world->height) {
+    newPosition.y %= world->height;
+  }
+  
+  if (newPosition.x < 0) {
+    newPosition.x = world->width - 1;
+  }
+  if (newPosition.y < 0) {
+    newPosition.y = world->height - 1;
+  }
+
 
   if(world_is_valid_position(world, newPosition) && !world->obstacle[newPosition.y][newPosition.x]) {
     if ((walker->pos.x > 0 && walker->pos.x < 50) || (walker->pos.y > 0 && walker->pos.y < 50)){

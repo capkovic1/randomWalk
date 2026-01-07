@@ -10,7 +10,7 @@
 
 static StatsMessage send_command(MessageType type, int x, int y) {
     StatsMessage stats;
-    memset(&stats, 0, sizeof(stats));   // 👈 VEĽMI DÔLEŽITÉ
+    memset(&stats, 0, sizeof(stats));   //VEĽMI DÔLEŽITÉ
 
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -26,7 +26,7 @@ static StatsMessage send_command(MessageType type, int x, int y) {
     Message msg = { .type = type, .x = x, .y = y };
     write(fd, &msg, sizeof(msg));
 
-    // 👇 SPRÁVNE ČÍTANIE CELÉHO STRUCTU
+    //SPRÁVNE ČÍTANIE CELÉHO STRUCTU
     int got = 0;
     while (got < sizeof(stats)) {
         int r = read(fd, ((char*)&stats) + got,
@@ -51,6 +51,7 @@ void client_run(void) {
     curs_set(0);
 
   UIState state = UI_MENU_MODE;
+  
   int mode = 0;
   int x = 5 ;
   int y = 5;
