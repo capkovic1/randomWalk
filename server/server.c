@@ -96,9 +96,6 @@ void server_run(void) {
       // Ak už nejaká simulácia bežala, uvoľni ju (ak máš na to funkciu)
       if (state.sim != NULL) {
         simulation_destroy(state.sim);
-        stats = state.sim->stats;
-        // Tu by bolo ideálne mať simulation_destroy(state.sim);
-        // Ak nemáš, aspoň uvoľni základnú štruktúru, ak je dynamická
       }
 
       // Vytvorenie novej konfigurácie podľa dát od klienta
@@ -110,7 +107,11 @@ void server_run(void) {
       };
 
       state.sim = simulation_create(new_config);
-    
+      stats = state.sim->stats;
+      
+      world_destroy(state.sim->world);
+      state.sim->world = create_guaranteed_world(msg.width, msg.height, 0.1, (Position){msg.x , msg.y});
+
       // Nastavenie štartovacej pozície
       state.start_x = msg.x;
       state.start_y = msg.y;
@@ -118,14 +119,20 @@ void server_run(void) {
       state.sim->walker->pos.y = msg.y;
 
       state.sim->world->visited[start_y][start_x] = 1;
-
+      
       // Pošli klientovi prázdny StatsMessage ako potvrdenie (ACK)
       StatsMessage ack = {0};
       ack.width = msg.width;
       ack.height = msg.height;
       ack.posX = msg.x;
       ack.posY = msg.y;
-
+      // Skopíruj vygenerované prekážky do potvrdzovacej správy
+    for (int y = 0; y < ack.height && y < 50; y++) {
+      for (int x = 0; x < ack.width && x < 50; x++) {
+        ack.obstacle[y][x] = state.sim->world->obstacle[y][x];
+        ack.visited[y][x] = state.sim->world->visited[y][x];
+      }
+    }
       write(client_fd, &ack, sizeof(ack));
       close(client_fd);
       continue; // Dôležité: Pokračuj na ďalšie accept()

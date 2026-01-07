@@ -89,3 +89,12 @@ void reset_stats(Statistics *stats) {
   stats->total_runs = 0;
   stats->total_steps = 0;
 }
+// Pomocná funkcia na vytvorenie garantovanej mapy
+World* create_guaranteed_world(int w, int h, double ratio, Position start) {
+    World* world = NULL;
+    do {
+        if (world) world_destroy(world);
+        world = world_generate_random(w, h, ratio , start); 
+    } while (!world_has_path(world, start)); // Opakuj, kým neexistuje cesta
+    return world;
+}

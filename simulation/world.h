@@ -21,8 +21,9 @@ _Bool world_remove_obstacle(World* world, Position pos);
 _Bool world_is_accessible(World* world, Position to);
 _Bool world_load_from_file(World* world, const char* filename);
 _Bool world_save_to_file(const World* world, const char* filename);
-World* world_generate_random(int width, int height, double obstacle_ratio);
+World* world_generate_random(int width, int height, double obstacle_ratio , Position startPos);
 void reset_visited(World * world);
 void reset_obstacles(World * world);
+_Bool world_has_path(World *world, Position start);
 
 #endif 

@@ -70,20 +70,20 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
             
             if (posX == world_x && posY == world_y) {
                 attron(COLOR_PAIR(1));  // Chodec - červený
-                mvprintw(screen_y, screen_x, "@ ");
+                mvprintw(screen_y, screen_x, " @ ");
                 attroff(COLOR_PAIR(1));
             } else if (obstacle[world_y][world_x]) {
                 attron(COLOR_PAIR(2));  // Prekážka - modrá
-                mvprintw(screen_y, screen_x, "# ");
+                mvprintw(screen_y, screen_x, " # ");
                 attroff(COLOR_PAIR(2));
             } else if (visited[world_y][world_x]) {
                 attron(COLOR_PAIR(3));  // Navštívené - zelené
-                mvprintw(screen_y, screen_x, ". ");
+                mvprintw(screen_y, screen_x, " . ");
                 attroff(COLOR_PAIR(3));
             } else if (world_x == 0 && world_y == 0) {
-              mvprintw(screen_y, screen_x, "O ");
+              mvprintw(screen_y, screen_x, " O ");
             } else {
-                mvprintw(screen_y, screen_x, "  ");  // Prázdne - čierne
+                mvprintw(screen_y, screen_x, "   ");  // Prázdne - čierne
             }
         }
     }
@@ -100,7 +100,7 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
     // X-ová os (horizontálne čísla)
     mvprintw(y_offset + height, 5, " ");  // Posun pod svet
     for (int world_x = 0; world_x < width; world_x++) {
-        mvprintw(y_offset + height, 5 + world_x * 2, "%2d", world_x);  // Čísla x-osi dole
+        mvprintw(y_offset + height, 5 + world_x * 2, "%2d ", world_x);  // Čísla x-osi dole
     }
     
     // Označenie osí

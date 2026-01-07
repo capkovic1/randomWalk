@@ -44,7 +44,7 @@ _Bool walker_move(Walker *walker, World *world) {
     newPosition.x += 1;
   }
 
-  if(world_is_valid_position(world, newPosition)) {
+  if(world_is_valid_position(world, newPosition) && !world->obstacle[newPosition.y][newPosition.x]) {
     if ((walker->pos.x > 0 && walker->pos.x < 50) || (walker->pos.y > 0 && walker->pos.y < 50)){
       world->visited[walker->pos.y][walker->pos.x] = 1;
     } else {
