@@ -7,8 +7,26 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
+void* client_thread_func(void* arg) {
+    ClientThreadData *data = (ClientThreadData*)arg;
+    
+    Message msg;
+    if (read(data->client_fd, &msg, sizeof(msg)) > 0) {
+        // P11: Zamkneme simuláciu, aby k nej iné vlákno v tomto čase nepristupovalo
+        pthread_mutex_lock(data->mutex);
+        
+        handle_message(data->state, data->client_fd, &msg);
+        
+        pthread_mutex_unlock(data->mutex);
+    }
+
+    close(data->client_fd);
+    free(data); // Uvoľníme pomocnú štruktúru
+    return NULL;
+}
 
 void handle_message(ServerState *state, int client_fd, Message *msg) {
 
@@ -156,42 +174,40 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
 }
 
 
-void server_run(void) {
-  
-  ServerState state = {0};
-  state.sim = NULL;
-  Statistics * stats = NULL;
+void server_run(const char * socket_path) {
+    ServerState state = {0};
+    pthread_mutex_t sim_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex pre P11
+    
+    int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    struct sockaddr_un addr = {0};
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, socket_path , sizeof(addr.sun_path) - 1);
 
-  int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-  struct sockaddr_un addr = {0};
-  addr.sun_family = AF_UNIX;
-  strcpy(addr.sun_path, SOCKET_PATH);
+    unlink(SOCKET_PATH);
+    bind(server_fd, (struct sockaddr *)&addr, sizeof(addr));
+    listen(server_fd, 10); // P4: Zvýšime frontu pre viac klientov
 
-  unlink(SOCKET_PATH);
-  if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr))) {
-    perror("bind");
-    return;
-  }
-  listen(server_fd, 5);
+    printf("[SERVER] Multithreaded server ready\n");
 
-  printf("[SERVER] Ready\n");
+    while (1) {
+        int client_fd = accept(server_fd, NULL, NULL);
+        if (client_fd < 0) continue;
 
- while (1) {
-    int client_fd = accept(server_fd, NULL, NULL);
-    if (client_fd < 0) continue;
+        // P4: Pre každého klienta alokujeme dáta a spustíme vlákno
+        ClientThreadData *data = malloc(sizeof(ClientThreadData));
+        data->client_fd = client_fd;
+        data->state = &state;
+        data->mutex = &sim_mutex;
 
-    Message msg;
-    int r = read(client_fd, &msg, sizeof(msg));
-    if (r <= 0) {
-        close(client_fd);
-        continue;
+        pthread_t tid;
+        if (pthread_create(&tid, NULL, client_thread_func, data) == 0) {
+            pthread_detach(tid); // Vlákno sa po skončení samo vyčistí
+        } else {
+            close(client_fd);
+            free(data);
+        }
     }
-
-    // 🔹 TU VOLÁME NOVÚ FUNKCIU handle_message
-    handle_message(&state, client_fd, &msg);
-
-    close(client_fd);  // server zatvorí socket po spracovaní správy
-
-  }
+    
+    pthread_mutex_destroy(&sim_mutex);
 }
 

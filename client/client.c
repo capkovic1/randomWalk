@@ -9,7 +9,7 @@
 #include <ncurses.h>
 #include <stdlib.h>
 
-static StatsMessage send_command(MessageType type, int x, int y) {
+static StatsMessage send_command(const char* socket_path,MessageType type, int x, int y) {
     StatsMessage stats;
     memset(&stats, 0, sizeof(stats));   //VEĽMI DÔLEŽITÉ
 
@@ -17,7 +17,7 @@ static StatsMessage send_command(MessageType type, int x, int y) {
 
     struct sockaddr_un addr = {0};
     addr.sun_family = AF_UNIX;
-    strcpy(addr.sun_path, SOCKET_PATH);
+    strncpy(addr.sun_path, socket_path , sizeof(addr.sun_path) - 1);
 
     if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("connect");
@@ -52,7 +52,7 @@ void* receiver_thread_func(void* arg) {
 
         // Vlákno pracuje IBA ak je simulácia aktívna (nie v Menu ani v Setup)
         if (current == UI_INTERACTIVE || current == UI_SUMMARY) {
-            StatsMessage new_data = send_command(MSG_SIM_GET_STATS, 0, 0); 
+            StatsMessage new_data = send_command(ctx->active_socket_path ,MSG_SIM_GET_STATS, 0, 0); 
             
             pthread_mutex_lock(&ctx->mutex);
             // Ak sa stav medzičasom nezmenil na Menu, ulož dáta
@@ -100,35 +100,61 @@ void client_run(void) {
 
     switch (local_state) {
 
-    // =========================
-    // MENU
-    // =========================
-    case UI_MENU_MODE: {
-        pthread_mutex_lock(&ctx.mutex);
-        memset(&ctx.stats, 0, sizeof(ctx.stats));
-        pthread_mutex_unlock(&ctx.mutex);
+   // =========================
+// MENU
+// =========================
+// V client_run prepis cast case UI_MENU_MODE:
+case UI_MENU_MODE: {
+    pthread_mutex_lock(&ctx.mutex);
+    memset(&ctx.stats, 0, sizeof(ctx.stats));
+    pthread_mutex_unlock(&ctx.mutex);
 
-        x = 5; y = 5; K = 100; runs = 1;
-        width = 11; height = 11;
+    char room_code[16] = {0};
+    int conn_choice = draw_connection_menu(room_code);
 
-        UIState next = draw_mode_menu(&mode);
+    if (conn_choice == 0) break; // Pouzivatel stlacil nieco ine
 
-        if (next == UI_SETUP_SIM) {
+    // Vytvorime unikatnu cestu k socketu podla kodu
+    char current_socket_path[100];
+    sprintf(current_socket_path, "/tmp/drunk_%s.sock", room_code);
+    strncpy(ctx.active_socket_path, current_socket_path, 99);
+
+    if (conn_choice == 1) { // VYTVORIT NOVU
+        // Tu este potrebujeme vediet, ci to bude Interaktivny alebo Sumarny mod
+        // Mozes sem pridat tvoj povodny draw_mode_menu(&mode);
+        ctx.current_state = draw_mode_menu(&mode); 
+
+        if (ctx.current_state == UI_SETUP_SIM) {
             pid_t pid = fork();
             if (pid == 0) {
                 setsid();
-                execl("./server_app", "./server_app", NULL);
+                // Serveru odovzdame cestu k socketu ako argument
+                execl("./server_app", "./server_app", current_socket_path, NULL);
                 exit(1);
             }
-            usleep(150000);
+            usleep(250000); // Cas pre server na bind()
         }
+    } 
+    else if (conn_choice == 2) { // PRIPOJIT SA
+        // Skusime, ci miestnost existuje
+        int test_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+        struct sockaddr_un addr = {0};
+        addr.sun_family = AF_UNIX;
+        strcpy(addr.sun_path, current_socket_path);
 
-        pthread_mutex_lock(&ctx.mutex);
-        ctx.current_state = next;
-        pthread_mutex_unlock(&ctx.mutex);
-        break;
+        if (connect(test_fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
+            close(test_fd);
+            // Ak existuje, ideme rovno do simulacie (vsetko si stiahne receiver_thread)
+            ctx.current_state = UI_INTERACTIVE; 
+        } else {
+            mvprintw(12, 6, "CHYBA: Miestnost %s neexistuje!", room_code);
+            refresh();
+            sleep(2);
+            ctx.current_state = UI_MENU_MODE;
+        }
     }
-
+    break;
+}
     // =========================
     // SETUP
     // =========================
@@ -225,14 +251,14 @@ void client_run(void) {
         int ch = getch();
 
         if (ch == 'r') {
-            send_command(
+            send_command(ctx.active_socket_path ,
                 local_state == UI_INTERACTIVE
                     ? MSG_SIM_STEP
                     : MSG_SIM_RUN,
                 x, y
             );
         } else if (ch == 'c') {
-            send_command(MSG_SIM_RESET, x, y);
+            send_command(ctx.active_socket_path ,MSG_SIM_RESET, x, y);
         } else if (ch == 'q') {
             pthread_mutex_lock(&ctx.mutex);
             ctx.current_state = UI_MENU_MODE;

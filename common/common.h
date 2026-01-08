@@ -52,6 +52,7 @@ typedef struct {
     int server_fd;            // Otvorený socket (ak chceme trvalé spojenie)
     int keep_running;         // Signalizácia pre koniec vlákna
     UIState current_state;    // Aktuálne menu/mód
+    char active_socket_path[100];
 } ClientContext;
 
 

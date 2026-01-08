@@ -4,6 +4,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+int draw_connection_menu(char *room_code) {
+    clear();
+    mvprintw(2, 4, "=== PRIPOJENIE K SIMULACII ===");
+    mvprintw(4, 6, "1 - Vytvorit novu miestnost (Server)");
+    mvprintw(5, 6, "2 - Pripojit sa k existujucej (Klient)");
+    mvprintw(7, 6, "Volba: ");
+    refresh();
+
+    int choice = getch();
+    if (choice != '1' && choice != '2') return 0; // Neplatná voľba
+
+    // Zadanie kódu miestnosti
+    move(9, 6);
+    printw("Zadaj kod miestnosti (max 15 znakov): ");
+    
+    echo();             // Zapneme zobrazovanie pisanych znakov
+    curs_set(1);        // Ukazeme kurzor
+    getnstr(room_code, 15); // Bezpecne nacitame retazec
+    noecho();           // Vypneme echo
+    curs_set(0);        // Schovame kurzor
+
+    return (choice == '1') ? 1 : 2;
+}
+
 UIState draw_mode_menu(int *mode) {
     clear();
     mvprintw(2, 4, "Random Walk Simulation");
