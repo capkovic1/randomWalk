@@ -1,13 +1,15 @@
 #include "../common/common.h"
 #include "../simulation/simulation.h"
 #include <ncurses.h>
+#include <stdlib.h>
+#include <string.h>
 
 UIState draw_mode_menu(int *mode) {
     clear();
     mvprintw(2, 4, "Random Walk Simulation");
     mvprintw(4, 6, "1 - Interaktivny mod");
     mvprintw(5, 6, "2 - Sumarny mod");
-    mvprintw(7, 6, "q - Quit");
+    mvprintw(7, 6, "q - Quit\n");
     refresh();
 
     int ch = getch();
@@ -16,45 +18,103 @@ UIState draw_mode_menu(int *mode) {
     if (ch == 'q') return UI_EXIT;
     return UI_MENU_MODE;
 }
-void draw_setup(int *x, int *y, int *K, int *runs, int *width, int *height, int probs[4], int mode) {
+UIState draw_setup(
+    int *x, int *y, int *K, int *runs,
+    int *width, int *height,
+    int probs[4], int mode
+) {
+    enum { F_WIDTH, F_HEIGHT, F_X, F_Y,
+           F_UP, F_DOWN, F_LEFT, F_RIGHT,
+           F_K, F_RUNS, F_COUNT };
+
+    static int field = 0;
+
+    static char buf[F_COUNT][8];
+    static int initialized = 0;
+
+    if (!initialized) {
+        snprintf(buf[F_WIDTH], 8, "%d", *width);
+        snprintf(buf[F_HEIGHT], 8, "%d", *height);
+        snprintf(buf[F_X], 8, "%d", *x);
+        snprintf(buf[F_Y], 8, "%d", *y);
+        snprintf(buf[F_UP], 8, "%d", probs[0]);
+        snprintf(buf[F_DOWN], 8, "%d", probs[1]);
+        snprintf(buf[F_LEFT], 8, "%d", probs[2]);
+        snprintf(buf[F_RIGHT], 8, "%d", probs[3]);
+        snprintf(buf[F_K], 8, "%d", *K);
+        snprintf(buf[F_RUNS], 8, "%d", *runs);
+        initialized = 1;
+    }
+
     clear();
-    echo();      // Zapne zobrazovanie písaných znakov
-    curs_set(1); // Zobrazí kurzor
+    curs_set(1);
+    noecho();
 
     mvprintw(1, 2, "--- KONFIGURACIA SIMULACIE ---");
 
-    // 1. Rozmery sveta
-    mvprintw(3, 2, "Sirka sveta (1-50): ");
-    scanw("%d", width);
-    mvprintw(4, 2, "Vyska sveta (1-50): ");
-    scanw("%d", height);
+    mvprintw(3, 2, "Sirka sveta: %s %s", buf[F_WIDTH], field == F_WIDTH ? "<" : "");
+    mvprintw(4, 2, "Vyska sveta: %s %s", buf[F_HEIGHT], field == F_HEIGHT ? "<" : "");
+    mvprintw(6, 2, "Start X: %s %s", buf[F_X], field == F_X ? "<" : "");
+    mvprintw(7, 2, "Start Y: %s %s", buf[F_Y], field == F_Y ? "<" : "");
 
-    // 2. Startovacia pozicia
-    mvprintw(6, 2, "Startovacia pozicia X: ");
-    scanw("%d", x);
-    mvprintw(7, 2, "Startovacia pozicia Y: ");
-    scanw("%d", y);
+    mvprintw(9, 2, "Up: %s %s", buf[F_UP], field == F_UP ? "<" : "");
+    mvprintw(10, 2, "Down: %s %s", buf[F_DOWN], field == F_DOWN ? "<" : "");
+    mvprintw(11, 2, "Left: %s %s", buf[F_LEFT], field == F_LEFT ? "<" : "");
+    mvprintw(12, 2, "Right: %s %s", buf[F_RIGHT], field == F_RIGHT ? "<" : "");
 
-    // 3. Pravdepodobnosti
-    mvprintw(9, 2, "Pravdepodobnosti (sucet musi byt 100):");
-    mvprintw(10, 4, "Hore (Up): ");    scanw("%d", &probs[0]);
-    mvprintw(11, 4, "Dole (Down): ");  scanw("%d", &probs[1]);
-    mvprintw(12, 4, "Vlavo (Left): "); scanw("%d", &probs[2]);
-    mvprintw(13, 4, "Vpravo (Right): "); scanw("%d", &probs[3]);
+    mvprintw(14, 2, "Max krokov K: %s %s", buf[F_K], field == F_K ? "<" : "");
 
-    // 4. Parametre simulacie
-    mvprintw(15, 2, "Max krokov (K): ");
-    scanw("%d", K);
-
-    if (mode == 2) { // Ak je zvoleny SUMMARY MOD (predpokladam podla tvojho menu)
-        mvprintw(16, 2, "Pocet replikacii (N): ");
-        scanw("%d", runs);
-    } else {
-        *runs = 1;
+    if (mode == 2) {
+        mvprintw(15, 2, "Replikacie: %s %s", buf[F_RUNS], field == F_RUNS ? "<" : "");
     }
 
-    noecho();     // Vypne spatne echo
-    curs_set(0);  // Schova kurzor
+    mvprintw(17, 2, "ENTER = dalsie | BACKSPACE = mazat | q = spat");
+
+    refresh();
+    timeout(50);
+    int ch = getch();
+
+    if (ch == 'q' || ch == 27) {
+        initialized = 0;
+        field = 0;
+        return UI_MENU_MODE;
+    }
+
+    if (ch == '\n') {
+        field++;
+        if (field >= (mode == 2 ? F_COUNT : F_RUNS)) {
+            *width = atoi(buf[F_WIDTH]);
+            *height = atoi(buf[F_HEIGHT]);
+            *x = atoi(buf[F_X]);
+            *y = atoi(buf[F_Y]);
+            probs[0] = atoi(buf[F_UP]);
+            probs[1] = atoi(buf[F_DOWN]);
+            probs[2] = atoi(buf[F_LEFT]);
+            probs[3] = atoi(buf[F_RIGHT]);
+            *K = atoi(buf[F_K]);
+            if (mode == 2) *runs = atoi(buf[F_RUNS]);
+            else *runs = 1;
+
+            initialized = 0;
+            field = 0;
+            return (mode == 1) ? UI_INTERACTIVE : UI_SUMMARY;
+        }
+    }
+
+    if (ch == KEY_BACKSPACE || ch == 127 || ch == 8) {
+        int len = strlen(buf[field]);
+        if (len > 0) buf[field][len - 1] = '\0';
+    }
+
+    if (ch >= '0' && ch <= '9') {
+        int len = strlen(buf[field]);
+        if (len < 6) {
+            buf[field][len] = ch;
+            buf[field][len + 1] = '\0';
+        }
+    }
+
+    return UI_SETUP_SIM;
 }
 
 void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50], _Bool visited[50][50]) {
