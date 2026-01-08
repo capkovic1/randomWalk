@@ -183,7 +183,7 @@ void server_run(const char * socket_path) {
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, socket_path , sizeof(addr.sun_path) - 1);
 
-    unlink(SOCKET_PATH);
+    unlink(socket_path);
     bind(server_fd, (struct sockaddr *)&addr, sizeof(addr));
     listen(server_fd, 10); // P4: Zvýšime frontu pre viac klientov
 

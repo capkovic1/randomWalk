@@ -105,6 +105,10 @@ void client_run(void) {
 // =========================
 // V client_run prepis cast case UI_MENU_MODE:
 case UI_MENU_MODE: {
+    
+    timeout(-1);
+    flushinp();
+        
     pthread_mutex_lock(&ctx.mutex);
     memset(&ctx.stats, 0, sizeof(ctx.stats));
     pthread_mutex_unlock(&ctx.mutex);
@@ -182,7 +186,7 @@ case UI_MENU_MODE: {
         int fd = socket(AF_UNIX, SOCK_STREAM, 0);
         struct sockaddr_un addr = {0};
         addr.sun_family = AF_UNIX;
-        strcpy(addr.sun_path, SOCKET_PATH);
+        strcpy(addr.sun_path,ctx.active_socket_path );
 
         if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
 
