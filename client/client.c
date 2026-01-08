@@ -45,23 +45,29 @@ static StatsMessage send_command(MessageType type, int x, int y) {
 
 void* receiver_thread_func(void* arg) {
     ClientContext* ctx = (ClientContext*)arg;
-
     while (ctx->keep_running) {
-        // V reálnom scenári by si tu mal trvalé spojenie alebo 
-        // by si sa periodicky pýtal na stav (polling)
-        if (ctx->current_state == UI_INTERACTIVE || ctx->current_state == UI_SUMMARY) {
-            // Tu zavoláš upravený send_command, ktorý len načíta dáta
-            StatsMessage new_data = send_command(MSG_SIM_INIT, 0, 0); 
+        pthread_mutex_lock(&ctx->mutex);
+        UIState current = ctx->current_state;
+        pthread_mutex_unlock(&ctx->mutex);
+
+        // Vlákno pracuje IBA ak je simulácia aktívna (nie v Menu ani v Setup)
+        if (current == UI_INTERACTIVE || current == UI_SUMMARY) {
+            StatsMessage new_data = send_command(MSG_SIM_GET_STATS, 0, 0); 
             
             pthread_mutex_lock(&ctx->mutex);
-            ctx->stats = new_data;
+            // Ak sa stav medzičasom nezmenil na Menu, ulož dáta
+            if (ctx->current_state == current) {
+                ctx->stats = new_data;
+            }
             pthread_mutex_unlock(&ctx->mutex);
+        } else {
+            // V menu alebo setupe vlákno len čaká a nič neposiela
+            usleep(500000); 
         }
-        usleep(100000); // Obnova každých 100ms
+        usleep(100000); 
     }
     return NULL;
 }
-
 void client_run(void) {
     initscr();
     cbreak();
@@ -69,171 +75,139 @@ void client_run(void) {
     keypad(stdscr, TRUE);
     curs_set(0);
 
-  UIState state = UI_MENU_MODE;
-  
-  int mode = 0;
-  int x = 5 ;
-  int y = 5;
-  int K = 100;
-  int runs = 1;
-  int probs[4] = {25,25,25,25};
-  int height = 11;
-  int width = 11;
-  
-    
+    // Inicializácia zdieľaného kontextu (bez globálnych premenných)
+    ClientContext ctx;
+    memset(&ctx, 0, sizeof(ctx));
+    pthread_mutex_init(&ctx.mutex, NULL);
+    ctx.keep_running = 1;
+    ctx.current_state = UI_MENU_MODE;
 
-  StatsMessage stats = {0};
+    // Lokálne konfiguračné premenné
+    int mode = 0;
+    int x = 5, y = 5, K = 100, runs = 1;
+    int probs[4] = {25, 25, 25, 25};
+    int height = 11, width = 11;
 
-  while (state != UI_EXIT) {
-    switch (state) {
+    // Spustenie prijímacieho vlákna (P11)
+    pthread_t receiver_tid;
+    pthread_create(&receiver_tid, NULL, receiver_thread_func, &ctx);
 
-       // ================= MENU =================
-case UI_MENU_MODE:
-    memset(&stats, 0, sizeof(stats));
-    state = draw_mode_menu(&mode);
-    
-    // P3: Ak používateľ vybral novú simuláciu, vytvoríme proces server
-    if (state == UI_SETUP_SIM) {
-        pid_t pid = fork();
-        if (pid < 0) {
-            // Chyba pri forku
-            endwin();
-            perror("Fork failed");
-            exit(1);
-        } else if (pid == 0) {
-            // --- DETSKÝ PROCES (SERVER) ---
-            // P5: Odpojíme od terminálu, aby server žil aj po vypnutí klienta
-            setsid(); 
+    while (ctx.current_state != UI_EXIT) {
+        // Aktualizujeme stav v kontexte pre vlákno
+        pthread_mutex_lock(&ctx.mutex);
+        UIState local_state = ctx.current_state;
+        pthread_mutex_unlock(&ctx.mutex);
+
+        switch (local_state) {
+
+        case UI_MENU_MODE:
+            // V menu vynulujeme staré štatistiky
+            pthread_mutex_lock(&ctx.mutex);
+            memset(&ctx.stats, 0, sizeof(ctx.stats));
+            pthread_mutex_unlock(&ctx.mutex);
+
+            x = 5, y = 5, K = 100, runs = 1 , height = 11, width = 11;
+            UIState next = draw_mode_menu(&mode);
             
-            // Spustíme binárku servera (predpokladá sa názov súboru "server")
-            execl("./server_app", "./server_app", NULL);
+            if (next == UI_SETUP_SIM) {
+                // P3 & P5: Vytvorenie procesu servera
+                pid_t pid = fork();
+                if (pid == 0) {
+                    setsid();
+                    execl("./server_app", "./server_app", NULL);
+                    exit(1);
+                }
+                usleep(150000); // Pauza pre server
+            }
             
-            // Ak exec zlyhá
-            exit(1); 
-        }
-        // --- RODIČOVSKÝ PROCES (KLIENT) ---
-        // Pokračuje ďalej v case UI_SETUP_SIM
-        usleep(100000); // Malá pauza, aby server stihol vytvoriť socket
-    }
-    break;
-        // ================= SETUP =================
-  case UI_SETUP_SIM:
-    // Zavolame novu metodu (odovzdavame adresy premennych cez &)
-    draw_setup(&x, &y, &K, &runs, &width, &height, probs, mode);
-    int originalx = x;
-    int originaly = y;  
-    // Po ukonceni setupu odosleme specialnu Message na server
-    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    struct sockaddr_un addr = {0};
-    addr.sun_family = AF_UNIX;
-    strcpy(addr.sun_path, SOCKET_PATH);
-    
-    if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
-      Message configMsg = {
-        .type = MSG_SIM_CONFIG, // Musis pridat do common.h
-        .x = x,
-        .y = y,
-        .width = width,
-        .height = height,
-        .max_steps = K,
-        .replications = runs
-      };
-        // Skopirujeme pole pravdepodobnosti
-      memcpy(configMsg.probs, probs, sizeof(probs));
+            pthread_mutex_lock(&ctx.mutex);
+            ctx.current_state = next;
+            pthread_mutex_unlock(&ctx.mutex);
+            break;
 
-      write(fd, &configMsg, sizeof(configMsg));
-        
-      // Pockame na potvrdenie (StatsMessage), aby sa nam inicializovali 'stats' v klientovi
-      int got = 0;
-      while (got < sizeof(stats)) {
-        int r = read(fd, ((char*)&stats) + got, sizeof(stats) - got);
-        if (r <= 0) break;
-        got += r;
-      }
-      close(fd);
-    }
-
-    // Prepneme stav podla modu
-    state = (mode == 1) ? UI_INTERACTIVE : UI_SUMMARY;
-    break;
-      // ================= INTERACTIVE =================
-      case UI_INTERACTIVE:
-        clear();
-        mvprintw(1, 2, "INTERAKTIVNY MOD");
-        mvprintw(14, 2, "Start: (%d,%d)", x, y);
-        mvprintw(15, 2, "r - run, c - reset, q - back");
-          
-        if(stats.height == 0 && stats.width == 0 ) {
-          stats = send_command(MSG_SIM_INIT, x, y);
-
-
-          if (stats.width == 0 || stats.height == 0) {
-            printf("ERROR: invalid start position\n");
-            return;
-          }
-
-        }
-
-        draw_world(stats.height, stats.width, stats.posX, stats.posY, stats.obstacle, stats.visited);
-          
-
-        int stats_y = 3 + stats.height + 2;
-
-
-        draw_stats(&stats, stats_y , state);
-        refresh();
-        int ch = getch();
-
-        if (ch == 'r') {
-          
-          stats = send_command(MSG_SIM_STEP, x, y);
-        
-        } else if (ch == 'c') {
+        case UI_SETUP_SIM:
+            draw_setup(&x, &y, &K, &runs, &width, &height, probs, mode);
             
-          stats = send_command(MSG_SIM_RESET, x, y);
-        
-        } else if (ch == 'q') {
-        
-          state = UI_MENU_MODE;
-        
-        }
-          break;
+            // Odoslanie konfigurácie (rovnako ako vo tvojom kóde)
+            int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+            struct sockaddr_un addr = {0};
+            addr.sun_family = AF_UNIX;
+            strcpy(addr.sun_path, SOCKET_PATH);
+            
+            if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
+                Message configMsg = {
+                    .type = MSG_SIM_CONFIG, .x = x, .y = y,
+                    .width = width, .height = height,
+                    .max_steps = K, .replications = runs
+                };
+                memcpy(configMsg.probs, probs, sizeof(probs));
+                write(fd, &configMsg, sizeof(configMsg));
+                
+                // Prvotné načítanie štatistík
+                StatsMessage temp_stats;
+                memset(&temp_stats, 0 , sizeof(temp_stats));
+                int got = 0;
+                while (got < sizeof(temp_stats)) {
+                    int r = read(fd, ((char*)&temp_stats) + got, sizeof(temp_stats) - got);
+                    if (r <= 0) break;
+                    got += r;
+                }
+                
+                pthread_mutex_lock(&ctx.mutex);
+                ctx.stats = temp_stats;
+                ctx.current_state = (mode == 1) ? UI_INTERACTIVE : UI_SUMMARY;
+                pthread_mutex_unlock(&ctx.mutex);
+                close(fd);
+            }
+            break;
 
-        // ================= SUMMARY =================
+        case UI_INTERACTIVE:
         case UI_SUMMARY:
             clear();
-            mvprintw(1, 2, "SUMARNY MOD");
-            mvprintw(3, 2, "Start: (%d,%d), K=%d, runs=%d", x, y, K, runs);
-            mvprintw(5, 2, "r - run N, c - reset, q - back");
-            draw_stats(&stats, 5 , state);
-            if(stats.height == 0 && stats.width == 0 ) {
-              stats = send_command(MSG_SIM_INIT, x, y);
+            
+            // Zamkneme dáta pre bezpečné vykreslenie (P11)
+            pthread_mutex_lock(&ctx.mutex);
+            StatsMessage current_stats = ctx.stats;
+            pthread_mutex_unlock(&ctx.mutex);
 
-
-             if (stats.width == 0 && stats.height == 0) {
-                printf("ERROR: invalid start position\n");
-                return;
-              }
-
-          }
+            if (local_state == UI_INTERACTIVE) {
+                mvprintw(1, 2, "INTERAKTIVNY MOD | Start: (%d,%d)", x, y);
+                mvprintw(2, 2, "r - krok, c - reset, q - menu");
+                draw_world(current_stats.height, current_stats.width, current_stats.posX, current_stats.posY, current_stats.obstacle, current_stats.visited);
+                draw_stats(&current_stats, 3 + current_stats.height + 2, local_state);
+            } else {
+                mvprintw(1, 2, "SUMARNY MOD | K=%d, replikacie=%d", K, runs);
+                mvprintw(2, 2, "r - spustit, c - reset, q - menu");
+                draw_stats(&current_stats, 5, local_state);
+            }
 
             refresh();
-            ch = getch();
+            
+            // timeout(50) spôsobí, že getch() nečaká večne a UI sa plynule obnovuje
+            timeout(50); 
+            int ch = getch();
 
             if (ch == 'r') {
-              stats = send_command(MSG_SIM_RUN, x, y);
+                send_command(local_state == UI_INTERACTIVE ? MSG_SIM_STEP : MSG_SIM_RUN, x, y);
             } else if (ch == 'c') {
-                stats = send_command(MSG_SIM_RESET, x, y);
+                send_command(MSG_SIM_RESET, x, y);
             } else if (ch == 'q') {
-                state = UI_MENU_MODE;
+                pthread_mutex_lock(&ctx.mutex);
+                ctx.current_state = UI_MENU_MODE;
+                memset(&ctx.stats, 0, sizeof(ctx.stats));
+                pthread_mutex_unlock(&ctx.mutex);
             }
             break;
 
         default:
-            state = UI_EXIT;
+            ctx.current_state = UI_EXIT;
+            break;
         }
     }
 
+    // Korektné ukončenie (P5 - server beží ďalej, ale klient končí čisto)
+    ctx.keep_running = 0;
+    pthread_join(receiver_tid, NULL);
+    pthread_mutex_destroy(&ctx.mutex);
     endwin();
 }
-
