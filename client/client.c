@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ncurses.h>
+#include <stdlib.h>
 
 static StatsMessage send_command(MessageType type, int x, int y) {
     StatsMessage stats;
@@ -42,6 +43,24 @@ static StatsMessage send_command(MessageType type, int x, int y) {
     return stats;
 }
 
+void* receiver_thread_func(void* arg) {
+    ClientContext* ctx = (ClientContext*)arg;
+
+    while (ctx->keep_running) {
+        // V reálnom scenári by si tu mal trvalé spojenie alebo 
+        // by si sa periodicky pýtal na stav (polling)
+        if (ctx->current_state == UI_INTERACTIVE || ctx->current_state == UI_SUMMARY) {
+            // Tu zavoláš upravený send_command, ktorý len načíta dáta
+            StatsMessage new_data = send_command(MSG_SIM_INIT, 0, 0); 
+            
+            pthread_mutex_lock(&ctx->mutex);
+            ctx->stats = new_data;
+            pthread_mutex_unlock(&ctx->mutex);
+        }
+        usleep(100000); // Obnova každých 100ms
+    }
+    return NULL;
+}
 
 void client_run(void) {
     initscr();
@@ -68,13 +87,35 @@ void client_run(void) {
   while (state != UI_EXIT) {
     switch (state) {
 
-        // ================= MENU =================
-  case UI_MENU_MODE:
-      
-      memset(&stats, 0, sizeof(stats));
-      state = draw_mode_menu(&mode);
-      break;
-
+       // ================= MENU =================
+case UI_MENU_MODE:
+    memset(&stats, 0, sizeof(stats));
+    state = draw_mode_menu(&mode);
+    
+    // P3: Ak používateľ vybral novú simuláciu, vytvoríme proces server
+    if (state == UI_SETUP_SIM) {
+        pid_t pid = fork();
+        if (pid < 0) {
+            // Chyba pri forku
+            endwin();
+            perror("Fork failed");
+            exit(1);
+        } else if (pid == 0) {
+            // --- DETSKÝ PROCES (SERVER) ---
+            // P5: Odpojíme od terminálu, aby server žil aj po vypnutí klienta
+            setsid(); 
+            
+            // Spustíme binárku servera (predpokladá sa názov súboru "server")
+            execl("./server_app", "./server_app", NULL);
+            
+            // Ak exec zlyhá
+            exit(1); 
+        }
+        // --- RODIČOVSKÝ PROCES (KLIENT) ---
+        // Pokračuje ďalej v case UI_SETUP_SIM
+        usleep(100000); // Malá pauza, aby server stihol vytvoriť socket
+    }
+    break;
         // ================= SETUP =================
   case UI_SETUP_SIM:
     // Zavolame novu metodu (odovzdavame adresy premennych cez &)

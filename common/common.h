@@ -2,6 +2,8 @@
 
 #define SOCKET_PATH "/tmp/random_walk.sock"
 
+#include <pthread.h>
+
 typedef enum { 
   MSG_SIM_RUN = 1,
   MSG_SIM_RESET = 2,
@@ -43,5 +45,13 @@ typedef enum {
   UI_SUMMARY,
   UI_EXIT
 } UIState;
+
+typedef struct {
+    StatsMessage stats;       // Aktuálne dáta zo servera
+    pthread_mutex_t mutex;    // Ochrana prístupu k stats
+    int server_fd;            // Otvorený socket (ak chceme trvalé spojenie)
+    int keep_running;         // Signalizácia pre koniec vlákna
+    UIState current_state;    // Aktuálne menu/mód
+} ClientContext;
 
 
