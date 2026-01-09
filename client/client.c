@@ -29,7 +29,7 @@ static StatsMessage send_command(const char* socket_path,MessageType type, int x
     write(fd, &msg, sizeof(msg));
 
     //SPRÁVNE ČÍTANIE CELÉHO STRUCTU
-    int got = 0;
+    size_t got = 0;
     while (got < sizeof(stats)) {
         int r = read(fd, ((char*)&stats) + got,
                      sizeof(stats) - got);
@@ -222,7 +222,7 @@ case UI_MENU_MODE: {
             write(fd, &configMsg, sizeof(configMsg));
 
             StatsMessage temp_stats = {0};
-            int got = 0;
+            size_t got = 0;
             while (got < sizeof(temp_stats)) {
                 int r = read(fd,
                     ((char*)&temp_stats) + got,
