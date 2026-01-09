@@ -48,7 +48,7 @@ typedef struct {
   _Bool finished;
   
   // Doplnkové štatistiky pre zobrazenie
-  double success_rate;  // Percentuálna úspešnosť
+  float success_rate;   // Percentuálna úspešnosť (float namiesto double)
   int remaining_runs;   // Zostávajúce behy
 } StatsMessage;
 

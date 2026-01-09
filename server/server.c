@@ -40,16 +40,12 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
     // =========================
 
     if (msg->type == MSG_SIM_RUN) {
-
-        printf("[SERVER] SIM_RUN\n");
         simulation_run(state->sim, (Position){msg->x, msg->y});
         if(state->sim->stats->total_runs >= state->sim->config.total_replications) {
           state->should_exit = 1;
     }    
 
     } else if (msg->type == MSG_SIM_STEP) {
-
-        printf("[SERVER] SIM_STEP\n");
         //simulate_interactive(state->sim, mutex);     
         walker_move(state->sim->walker, state->sim->world);
         
@@ -64,11 +60,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         }
 
     } else if (msg->type == MSG_SIM_RESET) {
-
         if (state->sim != NULL) {
-            printf("[SERVER] SIM_RESET to (%d , %d)\n",
-                   state->start_x, state->start_y);
-
             reset_stats(state->sim->stats);
             walker_reset(
                 state->sim->walker,
@@ -79,9 +71,6 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         }
 
     } else if (msg->type == MSG_SIM_INIT) {
-
-        printf("[SERVER] SIM_INIT\n");
-
         state->sim->walker->pos.x = msg->x;
         state->sim->walker->pos.y = msg->y;
 
@@ -94,6 +83,12 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         out.remaining_runs = state->sim->config.total_replications - state->sim->stats->total_runs;
         out.posX = state->sim->walker->pos.x;
         out.posY = state->sim->walker->pos.y;
+        out.total_runs = 0;
+        out.succ_runs = 0;
+        out.total_steps = 0;
+        out.curr_steps = 0;
+        out.finished = 0;
+        out.success_rate = 0.0f;
 
         for (int y = 0; y < out.height && y < 50; y++) {
             for (int x = 0; x < out.width && x < 50; x++) {
@@ -107,9 +102,6 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
     }
 
     else if (msg->type == MSG_SIM_CONFIG) {
-
-        printf("[SERVER] Reconfiguring simulation...\n");
-
         if (state->sim != NULL) {
             simulation_destroy(state->sim);
         }
@@ -148,10 +140,16 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         StatsMessage ack = {0};
         ack.width = msg->width;
         ack.height = msg->height;
-        ack.posX = msg->x;
-        ack.posY = msg->y;
         ack.max_steps = msg->max_steps;
         ack.remaining_runs = msg->replications;  // Všetky behy sú ešte na začiatku
+        ack.posX = msg->x;
+        ack.posY = msg->y;
+        ack.total_runs = 0;
+        ack.succ_runs = 0;
+        ack.total_steps = 0;
+        ack.curr_steps = 0;
+        ack.finished = 0;
+        ack.success_rate = 0.0f;
 
         for (int y = 0; y < ack.height && y < 50; y++) {
             for (int x = 0; x < ack.width && x < 50; x++) {
@@ -221,8 +219,6 @@ void server_run(const char * socket_path) {
 
     // P10: Registruj server v centrálnom registri
     register_server(socket_path, 50, 50);
-
-    printf("[SERVER] Multithreaded server ready on %s\n", socket_path);
 
     while (!state.should_exit) {
         int client_fd = accept(server_fd, NULL, NULL);
