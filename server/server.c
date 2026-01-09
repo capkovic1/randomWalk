@@ -115,6 +115,27 @@ void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mut
             reset_visited(state->sim->world);
             reset_obstacles(state->sim->world);
         }
+        // Send back stats after reset
+        StatsMessage out;
+        memset(&out, 0, sizeof(out));
+        out.curr_steps  = state->sim ? state->sim->walker->steps_made : 0;
+        out.total_runs  = state->sim ? state->sim->stats->total_runs : 0;
+        out.succ_runs   = state->sim ? state->sim->stats->succ_runs : 0;
+        out.total_steps = state->sim ? state->sim->stats->total_steps : 0;
+        out.max_steps   = state->sim ? state->sim->config.max_steps_K : 0;
+        out.width       = state->sim ? state->sim->world->width : 0;
+        out.height      = state->sim ? state->sim->world->height : 0;
+        out.posX        = state->sim ? state->sim->walker->pos.x : 0;
+        out.posY        = state->sim ? state->sim->walker->pos.y : 0;
+        out.finished    = 0;
+        out.remaining_runs = state->sim ? (state->sim->config.total_replications - state->sim->stats->total_runs) : 0;
+        if (state->sim && out.total_runs > 0) {
+            out.success_rate_permille = (1000 * out.succ_runs) / out.total_runs;
+        } else {
+            out.success_rate_permille = 0;
+        }
+        write(client_fd, &out, sizeof(out));
+        return;
 
     } else if (msg->type == MSG_SIM_INIT) {
         state->sim->walker->pos.x = msg->x;
