@@ -29,7 +29,7 @@ static StatsMessage send_command(const char* socket_path,MessageType type, int x
     write(fd, &msg, sizeof(msg));
 
     //SPRÁVNE ČÍTANIE CELÉHO STRUCTU
-    size_t got = 0;
+    int got = 0;
     while (got < sizeof(stats)) {
         int r = read(fd, ((char*)&stats) + got,
                      sizeof(stats) - got);
