@@ -148,7 +148,8 @@ case UI_MENU_MODE: {
 
     if (conn_choice == 1) { // VYTVORIT NOVU
         sprintf(current_socket_path, "/tmp/drunk_%s.sock", room_code);
-        strncpy(ctx.active_socket_path, current_socket_path, 255);
+        strncpy(ctx.active_socket_path, current_socket_path, sizeof(ctx.active_socket_path) - 1);
+        ctx.active_socket_path[sizeof(ctx.active_socket_path) - 1] = '\0';
         
         // Tu este potrebujeme vediet, ci to bude Interaktivny alebo Sumarny mod
         ctx.current_state = draw_mode_menu(&mode); 
@@ -166,7 +167,8 @@ case UI_MENU_MODE: {
     } 
     else if (conn_choice == 2) { // PRIPOJIT SA - Výber z registra (P10)
         if (draw_server_list_menu(current_socket_path)) {
-            strncpy(ctx.active_socket_path, current_socket_path, 255);
+            strncpy(ctx.active_socket_path, current_socket_path, sizeof(ctx.active_socket_path) - 1);
+            ctx.active_socket_path[sizeof(ctx.active_socket_path) - 1] = '\0';
             // Ak existuje, ideme rovno do simulacie (vsetko si stiahne receiver_thread)
             ctx.current_state = UI_INTERACTIVE; 
         } else {

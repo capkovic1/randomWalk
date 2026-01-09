@@ -64,7 +64,7 @@ void* client_thread_func(void* arg) {
 void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mutex_t *mutex) {
 
     if (msg->type == MSG_SIM_RUN) {
-        if (!state->sim) break;
+        if (!state->sim) return;
         int remaining = state->sim->config.total_replications - state->sim->stats->total_runs;
         if (remaining <= 0) {
             // nothing to do
