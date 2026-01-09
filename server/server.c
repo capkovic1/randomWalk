@@ -74,15 +74,19 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         out.width = state->sim->world->width;
         out.height = state->sim->world->height;
         out.max_steps = state->sim->config.max_steps_K;
+        out.total_runs = state->sim->stats->total_runs;
+        out.succ_runs = state->sim->stats->successful_runs;
+        out.total_steps = state->sim->stats->total_steps;
         out.remaining_runs = state->sim->config.total_replications - state->sim->stats->total_runs;
         out.posX = state->sim->walker->pos.x;
         out.posY = state->sim->walker->pos.y;
-        out.total_runs = 0;
-        out.succ_runs = 0;
-        out.total_steps = 0;
-        out.curr_steps = 0;
+        out.curr_steps = state->sim->walker->steps_made;
         out.finished = 0;
-        out.success_rate_permille = 0;
+        if (out.total_runs > 0) {
+            out.success_rate_permille = (1000 * out.succ_runs) / out.total_runs;
+        } else {
+            out.success_rate_permille = 0;
+        }
 
         for (int y = 0; y < out.height && y < 50; y++) {
             for (int x = 0; x < out.width && x < 50; x++) {
