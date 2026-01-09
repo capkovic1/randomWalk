@@ -82,7 +82,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         out.total_steps = 0;
         out.curr_steps = 0;
         out.finished = 0;
-        out.success_rate = 0.0f;
+        out.success_rate_permille = 0;
 
         for (int y = 0; y < out.height && y < 50; y++) {
             for (int x = 0; x < out.width && x < 50; x++) {
@@ -143,7 +143,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         ack.total_steps = 0;
         ack.curr_steps = 0;
         ack.finished = 0;
-        ack.success_rate = 0.0f;
+        ack.success_rate_permille = 0;
 
         for (int y = 0; y < ack.height && y < 50; y++) {
             for (int x = 0; x < ack.width && x < 50; x++) {
@@ -172,9 +172,9 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
     out.remaining_runs = state->sim->config.total_replications - state->sim->stats->total_runs;
     
     if (out.total_runs > 0) {
-        out.success_rate = (100.0 * out.succ_runs) / out.total_runs;
+        out.success_rate_permille = (1000 * out.succ_runs) / out.total_runs;
     } else {
-        out.success_rate = 0.0;
+        out.success_rate_permille = 0;
     }
 
     for (int y = 0; y < out.height && y < 50; y++) {

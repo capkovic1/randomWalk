@@ -211,7 +211,7 @@ void draw_stats(StatsMessage *s , int offset_y , UIState state) {
     if (state == UI_SUMMARY) {
         mvprintw(9 + offset_y, 4, "Total runs: %d / %d", s->total_runs, s->total_runs + s->remaining_runs);
         mvprintw(10 + offset_y, 4, "Successful runs: %d", s->succ_runs);
-        mvprintw(11 + offset_y, 4, "Success rate: %.2f %%", s->success_rate);
+        mvprintw(11 + offset_y, 4, "Success rate: %.2f %%", s->success_rate_permille / 10.0f);
         mvprintw(12 + offset_y, 4, "Total steps: %d", s->total_steps);
         
         if (s->total_runs > 0) {
