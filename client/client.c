@@ -252,6 +252,13 @@ case UI_MENU_MODE: {
         StatsMessage current_stats = ctx.stats;
         pthread_mutex_unlock(&ctx.mutex);
 
+        // V summary móde: ak je finished alebo remaining_runs == 0, automaticky reset
+        if (local_state == UI_SUMMARY && (current_stats.finished || current_stats.remaining_runs == 0)) {
+            if (current_stats.total_runs > 0) {
+                send_command(ctx.active_socket_path, MSG_SIM_RESET, x, y);
+            }
+        }
+
         if (local_state == UI_INTERACTIVE) {
             mvprintw(1, 2, "INTERAKTIVNY MOD | Start: (%d,%d)", x, y);
             mvprintw(2, 2, "r - krok, c - reset, q - menu");
