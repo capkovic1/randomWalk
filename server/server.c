@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 
 void* client_thread_func(void* arg) {
     ClientThreadData *data = (ClientThreadData*)arg;
@@ -203,6 +204,11 @@ void server_run(const char * socket_path) {
 
     // P10: Registruj server v centrálnom registri
     register_server(socket_path, 50, 50);
+
+    struct timeval tv;
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
     while (!state.should_exit) {
         int client_fd = accept(server_fd, NULL, NULL);

@@ -47,12 +47,10 @@ void* receiver_thread_func(void* arg)
 
     while (ctx->keep_running) {
 
-        // 1️⃣ Zistíme aktuálny stav UI
         pthread_mutex_lock(&ctx->mutex);
         UIState current = ctx->current_state;
         pthread_mutex_unlock(&ctx->mutex);
 
-        // 2️⃣ Pollujeme len počas simulácie
         if (current == UI_INTERACTIVE || current == UI_SUMMARY) {
 
             StatsMessage new_data =
@@ -60,7 +58,6 @@ void* receiver_thread_func(void* arg)
                              MSG_SIM_GET_STATS,
                              0, 0);
 
-            // 3️⃣ DETEKCIA NEPLATNEJ ODPOVEDE
             int valid =
                 new_data.width  != 0 &&
                 new_data.height != 0;
@@ -69,12 +66,10 @@ void* receiver_thread_func(void* arg)
 
                 pthread_mutex_lock(&ctx->mutex);
 
-                // Stav sa nezmenil?
                 if (ctx->current_state == current) {
 
                     ctx->stats = new_data;
 
-                    // 4️⃣ Koniec simulácie → STOP
                     if (new_data.finished) {
                         ctx->keep_running = 0;
                         pthread_mutex_unlock(&ctx->mutex);
@@ -84,7 +79,6 @@ void* receiver_thread_func(void* arg)
 
                 pthread_mutex_unlock(&ctx->mutex);
             }
-            // ❗ neplatné dáta → IGNORUJEME
 
         } else {
             usleep(500000);

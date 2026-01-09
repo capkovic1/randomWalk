@@ -44,12 +44,12 @@ typedef struct {
   // Aktuálny beh
   int curr_steps;
   
+  // Doplnkové štatistiky pre zobrazenie
+  float success_rate;   // Percentuálna úspešnosť
+  int remaining_runs;   // Zostávajúce behy
+  
   // Stav simulácie
   _Bool finished;
-  
-  // Doplnkové štatistiky pre zobrazenie
-  float success_rate;   // Percentuálna úspešnosť (float namiesto double)
-  int remaining_runs;   // Zostávajúce behy
 } StatsMessage;
 
 typedef enum {
