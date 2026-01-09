@@ -25,18 +25,31 @@ typedef struct {
 
 } Message;
 typedef struct {
+  // Základné štatistiky
   int total_steps;
   int max_steps;
   int succ_runs;
   int total_runs;
-  int width ;
+  
+  // Mapa
+  int width;
   int height;
   _Bool obstacle[50][50];
   _Bool visited[50][50];
+  
+  // Pozícia
   int posX;
   int posY;
+  
+  // Aktuálny beh
   int curr_steps;
+  
+  // Stav simulácie
   _Bool finished;
+  
+  // Doplnkové štatistiky pre zobrazenie
+  double success_rate;  // Percentuálna úspešnosť
+  int remaining_runs;   // Zostávajúce behy
 } StatsMessage;
 
 typedef enum {

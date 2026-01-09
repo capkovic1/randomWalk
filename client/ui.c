@@ -206,27 +206,41 @@ void draw_summary(double grid[11][11], int w, int h) {
 }
 void draw_stats(StatsMessage *s , int offset_y , UIState state) {
    
-    mvprintw(8 + offset_y, 2, "STATISTIKY:");
-    if (state == UI_SUMMARY ) {
+    mvprintw(8 + offset_y, 2, "=== STATISTIKY ===");
     
-    
-      mvprintw(9 + offset_y, 4, "Total runs: %d", s->total_runs);
-      mvprintw(10 + offset_y, 4, "Successful runs: %d", s->succ_runs);
-
-      if (s->total_runs > 0) {
-        double p = 100.0 * s->succ_runs / s->total_runs;
-        mvprintw(11 + offset_y, 4, "Success rate: %.2f %%", p);
-      }
-
-      mvprintw(12 + offset_y, 4, "Total steps: %d", s->total_steps);
-    } else if (state == UI_INTERACTIVE ) {
-      mvprintw(9+ offset_y, 4, "Steps made currentli: %d" , s->curr_steps);
-      mvprintw(10 + offset_y, 4, "reached end : %d",s->finished);
+    if (state == UI_SUMMARY) {
+        mvprintw(9 + offset_y, 4, "Total runs: %d / %d", s->total_runs, s->total_runs + s->remaining_runs);
+        mvprintw(10 + offset_y, 4, "Successful runs: %d", s->succ_runs);
+        mvprintw(11 + offset_y, 4, "Success rate: %.2f %%", s->success_rate);
+        mvprintw(12 + offset_y, 4, "Total steps: %d", s->total_steps);
+        
+        if (s->total_runs > 0) {
+            double avg_steps = (double)s->total_steps / s->total_runs;
+            mvprintw(13 + offset_y, 4, "Avg steps/run: %.2f", avg_steps);
+        }
+        
+        if (s->remaining_runs > 0) {
+            mvprintw(14 + offset_y, 4, "Remaining: %d", s->remaining_runs);
+        }
+        
+    } else if (state == UI_INTERACTIVE) {
+        int visited = 0;
+        for (int y = 0; y < s->height; y++) {
+            for (int x = 0; x < s->width; x++) {
+                if (s->visited[y][x]) visited++;
+            }
+        }
+        
+        mvprintw(9 + offset_y, 4, "Steps made: %d / %d", s->curr_steps, s->max_steps);
+        mvprintw(10 + offset_y, 4, "Position: (%d, %d)", s->posX, s->posY);
+        mvprintw(11 + offset_y, 4, "Visited cells: %d / %d", visited, s->width * s->height);
     }
-  if (s->finished) {
-    mvprintw(0, 2, "SIMULACIA UKONCENA");
-    timeout(-1); 
-  }
+    
+    if (s->finished) {
+        mvprintw(1, 2, "*** SIMULACIA UKONCENA ***");
+        mvprintw(2, 2, "Stlac 'q' pre vrátenie do menu");
+        timeout(-1); 
+    }
 
 }
 

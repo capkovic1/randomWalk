@@ -10,6 +10,17 @@
 #include <ncurses.h>
 #include <stdlib.h>
 
+// Helper funkcia na počítanie navštívených buniek
+static int count_visited_cells(StatsMessage *stats) {
+    int count = 0;
+    for (int y = 0; y < stats->height; y++) {
+        for (int x = 0; x < stats->width; x++) {
+            if (stats->visited[y][x]) count++;
+        }
+    }
+    return count;
+}
+
 static StatsMessage send_command(const char* socket_path,MessageType type, int x, int y) {
     StatsMessage stats;
     memset(&stats, 0, sizeof(stats));   //VEĽMI DÔLEŽITÉ
@@ -29,7 +40,7 @@ static StatsMessage send_command(const char* socket_path,MessageType type, int x
     write(fd, &msg, sizeof(msg));
 
     //SPRÁVNE ČÍTANIE CELÉHO STRUCTU
-    int got = 0;
+    size_t got = 0;
     while (got < sizeof(stats)) {
         int r = read(fd, ((char*)&stats) + got,
                      sizeof(stats) - got);
