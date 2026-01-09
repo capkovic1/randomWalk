@@ -32,13 +32,6 @@ void* client_thread_func(void* arg) {
 
 void handle_message(ServerState *state, int client_fd, Message *msg) {
 
-    int start_x = msg->x;
-    int start_y = msg->y;
-
-    // =========================
-    // 1. SPRACUJ PRÍKAZ
-    // =========================
-
     if (msg->type == MSG_SIM_RUN) {
         simulation_run(state->sim, (Position){msg->x, msg->y});
         if(state->sim->stats->total_runs >= state->sim->config.total_replications) {
@@ -159,12 +152,8 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         }
 
         write(client_fd, &ack, sizeof(ack));
-        return;   // 🔴 dôležité
+        return;
     }
-
-    // =========================
-    // 2. VYTVOR ODPOVEĎ
-    // =========================
 
     StatsMessage out;
     memset(&out, 0, sizeof(out));
@@ -181,7 +170,6 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
     out.finished    = state->should_exit;
     out.remaining_runs = state->sim->config.total_replications - state->sim->stats->total_runs;
     
-    // Vypočítaj success rate
     if (out.total_runs > 0) {
         out.success_rate = (100.0 * out.succ_runs) / out.total_runs;
     } else {
@@ -194,10 +182,6 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
             out.obstacle[y][x] = state->sim->world->obstacle[y][x];
         }
     }
-
-    // =========================
-    // 3. ODPOŠLI
-    // =========================
 
     write(client_fd, &out, sizeof(out));
 }

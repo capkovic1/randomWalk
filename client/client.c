@@ -10,20 +10,9 @@
 #include <ncurses.h>
 #include <stdlib.h>
 
-// Helper funkcia na počítanie navštívených buniek
-static int count_visited_cells(StatsMessage *stats) {
-    int count = 0;
-    for (int y = 0; y < stats->height; y++) {
-        for (int x = 0; x < stats->width; x++) {
-            if (stats->visited[y][x]) count++;
-        }
-    }
-    return count;
-}
-
-static StatsMessage send_command(const char* socket_path,MessageType type, int x, int y) {
+static StatsMessage send_command(const char* socket_path, MessageType type, int x, int y) {
     StatsMessage stats;
-    memset(&stats, 0, sizeof(stats));   //VEĽMI DÔLEŽITÉ
+    memset(&stats, 0, sizeof(stats));
 
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -32,20 +21,17 @@ static StatsMessage send_command(const char* socket_path,MessageType type, int x
     strncpy(addr.sun_path, socket_path , sizeof(addr.sun_path) - 1);
 
     if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        perror("connect");
         return stats;
     }
 
     Message msg = { .type = type, .x = x, .y = y };
     write(fd, &msg, sizeof(msg));
 
-    //SPRÁVNE ČÍTANIE CELÉHO STRUCTU
     size_t got = 0;
     while (got < sizeof(stats)) {
         int r = read(fd, ((char*)&stats) + got,
                      sizeof(stats) - got);
         if (r <= 0) {
-            perror("read");
             break;
         }
         got += r;

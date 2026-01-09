@@ -7,10 +7,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Cesta pride z klienta (napr. /tmp/drunk_mojeid.sock)
     char *socket_path = argv[1];
-
-    printf("[SERVER] Startujem na sockete: %s\n", socket_path);
     server_run(socket_path);
 
     return 0;

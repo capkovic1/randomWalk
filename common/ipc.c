@@ -11,14 +11,11 @@
 int register_server(const char *socket_path, int width, int height) {
     FILE *f = fopen(REGISTRY_FILE, "a");
     if (!f) {
-        perror("Failed to open registry");
         return -1;
     }
     
     fprintf(f, "%s|%d|%d\n", socket_path, width, height);
     fclose(f);
-    
-    printf("[SERVER] Registrovaný na: %s\n", socket_path);
     return 0;
 }
 
@@ -27,7 +24,6 @@ int unregister_server(const char *socket_path) {
     FILE *tmp = fopen(REGISTRY_FILE ".tmp", "w");
     
     if (!f || !tmp) {
-        perror("Failed to open registry");
         if (f) fclose(f);
         if (tmp) fclose(tmp);
         return -1;

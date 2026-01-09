@@ -1,9 +1,6 @@
 #include "simulation.h"
 #include "world.h"
-#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <pthread.h>
 Statistics * stat_create() {
   Statistics * stats = malloc(sizeof(Statistics));
   return stats;
@@ -13,24 +10,17 @@ void stat_destroy(Statistics *stat) {
 }
 
 Simulation * simulation_create(SimulationConfig config) {
- 
   if(config.width <= 0 || config.height <= 0) {
-    printf("ERROR: Nespravne rozmery\n");
     return NULL;
   }
   
   Simulation * sim = malloc(sizeof(Simulation));
-
   sim->world = world_create(config.width, config.height);
   
-  Position pos;
-  pos.x = 5;
-  pos.y = 5;
-
+  Position pos = {5, 5};
   sim->walker = walker_create(pos, config.probs);
 
   sim->config = config;
-  sim->config.current_replication = 0;
   sim->stats = stat_create();
 
   return sim;
@@ -97,13 +87,6 @@ _Bool simulation_run_n_times(Simulation * sim, Position pos, int times) {
   }
 
   return 1;
-}
-
-void print_stats(Statistics *stats) {
-  printf("VYSLEDKY SIMULACII SU\n");
-  printf("Pocet uspesnych runov je %d z celkovych %d \n",stats->succ_runs,stats->total_runs);
-  printf("Urobilo sa celkovo %d krokov\n",stats->total_steps);
-  
 }
 
 void reset_stats(Statistics *stats) {

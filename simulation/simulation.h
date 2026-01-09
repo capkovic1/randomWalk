@@ -31,7 +31,6 @@ void simulation_destroy(Simulation* sim);
 _Bool simulation_run(Simulation* sim , Position pos);
 _Bool simulation_run_n_times(Simulation * sim , Position pos , int times);
 
-void print_stats(Statistics * stats);
 void reset_stats(Statistics * stats);
 
 Statistics* simulation_get_statistics(Simulation* sim);
