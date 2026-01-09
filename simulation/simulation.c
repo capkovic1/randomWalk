@@ -1,6 +1,8 @@
 #include "simulation.h"
 #include "world.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 Statistics * stat_create() {
   Statistics * stats = malloc(sizeof(Statistics));
   return stats;
@@ -22,6 +24,7 @@ Simulation * simulation_create(SimulationConfig config) {
 
   sim->config = config;
   sim->stats = stat_create();
+  sim->filename = NULL;
 
   return sim;
 }
@@ -30,6 +33,7 @@ void simulation_destroy(Simulation *sim) {
   walker_destroy(sim->walker);
   world_destroy(sim->world);
   stat_destroy(sim->stats);
+  if (sim->filename) free(sim->filename);
   free(sim);
 }
 _Bool simulation_run(Simulation *sim , Position pos) {
@@ -41,6 +45,21 @@ _Bool simulation_run(Simulation *sim , Position pos) {
       walker_reset(sim->walker, pos);
       
       Trajectory * traj = walker_simulate_to_center(sim->walker, sim->world, config.max_steps_K);
+
+      // Save trajectory to file if filename provided
+      if (sim->filename && strlen(sim->filename) > 0) {
+        FILE *f = fopen(sim->filename, "a");
+        if (f) {
+          int run_no = sim->config.current_replication + 1;
+          fprintf(f, "Run %d:\n", run_no);
+          fprintf(f, "steps=%d success=%d\n", traj->steps_made, walker_has_reached_center(sim->walker));
+          for (int i = 0; i < traj->length; i++) {
+            fprintf(f, "%d %d\n", traj->pos[i].x, traj->pos[i].y);
+          }
+          fprintf(f, "---\n");
+          fclose(f);
+        }
+      }
 
       sim->stats->total_steps += traj->steps_made;
       sim->stats->total_runs ++;
@@ -86,6 +105,21 @@ _Bool simulation_run_n_times(Simulation * sim, Position pos, int times) {
     simulation_run(sim, pos);
   }
 
+  return 1;
+}
+
+_Bool simulation_save_results(Simulation* sim, const char* filename) {
+  if (!filename || strlen(filename) == 0) return 0;
+  FILE *f = fopen(filename, "a");
+  if (!f) return 0;
+  int total = sim->stats->total_runs;
+  int succ = sim->stats->succ_runs;
+  int steps = sim->stats->total_steps;
+  double success_rate = total > 0 ? ((double)succ * 100.0) / (double)total : 0.0;
+  fprintf(f, "SUMMARY:\n");
+  fprintf(f, "total_runs=%d succ_runs=%d total_steps=%d success_rate=%.2f\n", total, succ, steps, success_rate);
+  fprintf(f, "EOF\n\n");
+  fclose(f);
   return 1;
 }
 

@@ -35,9 +35,13 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
 
     if (msg->type == MSG_SIM_RUN) {
         simulation_run(state->sim, (Position){msg->x, msg->y});
-        if(state->sim->stats->total_runs >= state->sim->config.total_replications) {
-          state->should_exit = 1;
-    }    
+                if(state->sim->stats->total_runs >= state->sim->config.total_replications) {
+                    // save final summary if filename provided
+                    if (state->sim->filename && state->sim->filename[0] != '\0') {
+                        simulation_save_results(state->sim, state->sim->filename);
+                    }
+                    state->should_exit = 1;
+        }
 
     } else if (msg->type == MSG_SIM_STEP) {
         //simulate_interactive(state->sim, mutex);     
@@ -75,7 +79,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         out.height = state->sim->world->height;
         out.max_steps = state->sim->config.max_steps_K;
         out.total_runs = state->sim->stats->total_runs;
-        out.succ_runs = state->sim->stats->successful_runs;
+        out.succ_runs = state->sim->stats->succ_runs;
         out.total_steps = state->sim->stats->total_steps;
         out.remaining_runs = state->sim->config.total_replications - state->sim->stats->total_runs;
         out.posX = state->sim->walker->pos.x;
@@ -119,6 +123,12 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
 
         state->sim = simulation_create(new_config);
 
+        if (msg->out_filename[0] != '\0') {
+            // store filename for later saving
+            if (state->sim->filename) free(state->sim->filename);
+            state->sim->filename = strdup(msg->out_filename);
+        }
+
         world_destroy(state->sim->world);
         state->sim->world = create_guaranteed_world(
             msg->width,
@@ -133,7 +143,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         state->sim->walker->pos.x = msg->x;
         state->sim->walker->pos.y = msg->y;
 
-        state->sim->world->visited[start_y][start_x] = 1;
+        state->sim->world->visited[state->start_y][state->start_x] = 1;
 
         StatsMessage ack = {0};
         ack.width = msg->width;

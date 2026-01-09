@@ -46,15 +46,16 @@ UIState draw_mode_menu(int *mode) {
 UIState draw_setup(
     int *x, int *y, int *K, int *runs,
     int *width, int *height,
-    int probs[4], int mode
+    int probs[4], int mode,
+    char *out_filename, int out_filename_len
 ) {
-    enum { F_WIDTH, F_HEIGHT, F_X, F_Y,
-           F_UP, F_DOWN, F_LEFT, F_RIGHT,
-           F_K, F_RUNS, F_COUNT };
+        enum { F_WIDTH, F_HEIGHT, F_X, F_Y,
+            F_UP, F_DOWN, F_LEFT, F_RIGHT,
+            F_K, F_RUNS, F_FILENAME, F_COUNT };
 
     static int field = 0;
 
-    static char buf[F_COUNT][8];
+    static char buf[F_COUNT][64];
     static int initialized = 0;
 
     if (!initialized) {
@@ -68,6 +69,7 @@ UIState draw_setup(
         snprintf(buf[F_RIGHT], 8, "%d", probs[3]);
         snprintf(buf[F_K], 8, "%d", *K);
         snprintf(buf[F_RUNS], 8, "%d", *runs);
+        snprintf(buf[F_FILENAME], 64, "out.txt");
         initialized = 1;
     }
 
@@ -88,9 +90,11 @@ UIState draw_setup(
     mvprintw(12, 2, "Right: %s %s", buf[F_RIGHT], field == F_RIGHT ? "<" : "");
 
     mvprintw(14, 2, "Max krokov K: %s %s", buf[F_K], field == F_K ? "<" : "");
-
     if (mode == 2) {
         mvprintw(15, 2, "Replikacie: %s %s", buf[F_RUNS], field == F_RUNS ? "<" : "");
+        mvprintw(16, 2, "Vystupny subor: %s %s", buf[F_FILENAME], field == F_FILENAME ? "<" : "");
+    } else {
+        mvprintw(16, 2, "Vystupny subor: %s %s", buf[F_FILENAME], field == F_FILENAME ? "<" : "");
     }
 
     mvprintw(17, 2, "ENTER = dalsie | BACKSPACE = mazat | q = spat");
@@ -107,7 +111,7 @@ UIState draw_setup(
 
     if (ch == '\n') {
         field++;
-        if (field >= (mode == 2 ? F_COUNT : F_RUNS)) {
+        if (field >= F_COUNT) {
             *width = atoi(buf[F_WIDTH]);
             *height = atoi(buf[F_HEIGHT]);
             *x = atoi(buf[F_X]);
@@ -117,8 +121,12 @@ UIState draw_setup(
             probs[2] = atoi(buf[F_LEFT]);
             probs[3] = atoi(buf[F_RIGHT]);
             *K = atoi(buf[F_K]);
-            if (mode == 2) *runs = atoi(buf[F_RUNS]);
-            else *runs = 1;
+            *runs = atoi(buf[F_RUNS]);
+            // copy output filename
+            if (out_filename && out_filename_len > 0) {
+                strncpy(out_filename, buf[F_FILENAME], out_filename_len - 1);
+                out_filename[out_filename_len-1] = '\0';
+            }
 
             initialized = 0;
             field = 0;
@@ -131,11 +139,21 @@ UIState draw_setup(
         if (len > 0) buf[field][len - 1] = '\0';
     }
 
-    if (ch >= '0' && ch <= '9') {
-        int len = strlen(buf[field]);
-        if (len < 6) {
-            buf[field][len] = ch;
-            buf[field][len + 1] = '\0';
+    if (field == F_FILENAME) {
+        if (ch >= 32 && ch <= 126) {
+            int len = strlen(buf[field]);
+            if (len < 63) {
+                buf[field][len] = ch;
+                buf[field][len + 1] = '\0';
+            }
+        }
+    } else {
+        if (ch >= '0' && ch <= '9') {
+            int len = strlen(buf[field]);
+            if (len < 6) {
+                buf[field][len] = ch;
+                buf[field][len + 1] = '\0';
+            }
         }
     }
 
@@ -212,7 +230,7 @@ void draw_stats(StatsMessage *s , int offset_y , UIState state) {
         int total_configured = s->total_runs + s->remaining_runs;
         mvprintw(9 + offset_y, 4, "Total runs: %d / %d", s->total_runs, total_configured);
         mvprintw(10 + offset_y, 4, "Successful runs: %d", s->succ_runs);
-        mvprintw(11 + offset_y, 4, "Success rate: %.2f %%", s->succ_runs / s->total_runs * 100.0);
+        mvprintw(11 + offset_y, 4, "Success rate: %.2f %%", s->success_rate_permille / 10.0f);
         mvprintw(12 + offset_y, 4, "Total steps: %d", s->total_steps);
         
         if (s->total_runs > 0) {

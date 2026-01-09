@@ -24,7 +24,9 @@ static StatsMessage send_command(const char* socket_path, MessageType type, int 
         return stats;
     }
 
-    Message msg = { .type = type, .x = x, .y = y };
+    Message msg;
+    memset(&msg, 0, sizeof(msg));
+    msg.type = type; msg.x = x; msg.y = y;
     write(fd, &msg, sizeof(msg));
 
     size_t got = 0;
@@ -109,6 +111,7 @@ void client_run(void) {
     int x = 5, y = 5, K = 100, runs = 1;
     int probs[4] = {25, 25, 25, 25};
     int height = 11, width = 11;
+    char out_filename[128] = {0};
 
     // Spustenie prijímacieho vlákna (P11)
     pthread_t receiver_tid;
@@ -179,7 +182,8 @@ case UI_MENU_MODE: {
         UIState next = draw_setup(
             &x, &y, &K, &runs,
             &width, &height,
-            probs, mode
+            probs, mode,
+            out_filename, sizeof(out_filename)
         );
 
         // 🔹 stále editujem → nič nerob
@@ -203,13 +207,16 @@ case UI_MENU_MODE: {
 
         if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
 
-            Message configMsg = {
-                .type = MSG_SIM_CONFIG,
-                .x = x, .y = y,
-                .width = width, .height = height,
-                .max_steps = K, .replications = runs
-            };
+            Message configMsg;
+            memset(&configMsg, 0, sizeof(configMsg));
+            configMsg.type = MSG_SIM_CONFIG;
+            configMsg.x = x; configMsg.y = y;
+            configMsg.width = width; configMsg.height = height;
+            configMsg.max_steps = K; configMsg.replications = runs;
             memcpy(configMsg.probs, probs, sizeof(probs));
+            if (out_filename[0] != '\0') {
+                strncpy(configMsg.out_filename, out_filename, sizeof(configMsg.out_filename)-1);
+            }
             write(fd, &configMsg, sizeof(configMsg));
 
             StatsMessage temp_stats = {0};

@@ -22,6 +22,7 @@ typedef struct {
   int max_steps;
   int replications;
   int probs[4];
+  char out_filename[128];
 
 } Message;
 typedef struct {
