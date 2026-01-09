@@ -52,9 +52,16 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
         printf("[SERVER] SIM_STEP\n");
         //simulate_interactive(state->sim, mutex);     
         walker_move(state->sim->walker, state->sim->world);
+        
+        // Overenie či sa dostal na cieľ
         if(state->sim->walker->at_finish) {
-          state->should_exit = 1;
-    } 
+            state->should_exit = 1;
+        }
+        
+        // Overenie či prekročil max kroky
+        if(state->sim->walker->steps_made >= state->sim->config.max_steps_K) {
+            state->should_exit = 1;
+        }
 
     } else if (msg->type == MSG_SIM_RESET) {
 

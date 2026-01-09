@@ -239,7 +239,6 @@ void draw_stats(StatsMessage *s , int offset_y , UIState state) {
     if (s->finished) {
         mvprintw(1, 2, "*** SIMULACIA UKONCENA ***");
         mvprintw(2, 2, "Stlac 'q' pre vrátenie do menu");
-        timeout(-1); 
     }
 
 }
