@@ -38,7 +38,6 @@ void *batch_run_thread(void *arg) {
         simulation_save_results(a->state->sim, a->state->sim->filename);
         pthread_mutex_unlock(a->mutex);
     }
-    a->state->should_exit = 1;
     free(a);
     return NULL;
 }
@@ -115,6 +114,28 @@ void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mut
             reset_visited(state->sim->world);
             reset_obstacles(state->sim->world);
         }
+        // Send back stats after reset
+        StatsMessage out = {0};
+        if (state->sim) {
+            out.total_runs = state->sim->stats->total_runs;
+            out.succ_runs = state->sim->stats->succ_runs;
+            out.total_steps = state->sim->stats->total_steps;
+            out.width = state->sim->world->width;
+            out.height = state->sim->world->height;
+            out.max_steps = state->sim->config.max_steps_K;
+            out.posX = state->sim->walker->pos.x;
+            out.posY = state->sim->walker->pos.y;
+            out.curr_steps = state->sim->walker->steps_made;
+            out.remaining_runs = state->sim->config.total_replications;
+            for (int y = 0; y < out.height && y < 50; y++) {
+                for (int x = 0; x < out.width && x < 50; x++) {
+                    out.visited[y][x] = state->sim->world->visited[y][x];
+                    out.obstacle[y][x] = state->sim->world->obstacle[y][x];
+                }
+            }
+        }
+        write(client_fd, &out, sizeof(out));
+        return;
         // Send back stats after reset
         StatsMessage out;
         memset(&out, 0, sizeof(out));
