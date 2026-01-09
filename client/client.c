@@ -43,31 +43,61 @@ static StatsMessage send_command(const char* socket_path,MessageType type, int x
     return stats;
 }
 
-void* receiver_thread_func(void* arg) {
+void* receiver_thread_func(void* arg)
+{
     ClientContext* ctx = (ClientContext*)arg;
+
     while (ctx->keep_running) {
+
+        // 1️⃣ Zistíme aktuálny stav UI
         pthread_mutex_lock(&ctx->mutex);
         UIState current = ctx->current_state;
         pthread_mutex_unlock(&ctx->mutex);
 
-        // Vlákno pracuje IBA ak je simulácia aktívna (nie v Menu ani v Setup)
+        // 2️⃣ Pollujeme len počas simulácie
         if (current == UI_INTERACTIVE || current == UI_SUMMARY) {
-            StatsMessage new_data = send_command(ctx->active_socket_path ,MSG_SIM_GET_STATS, 0, 0); 
-            
-            pthread_mutex_lock(&ctx->mutex);
-            // Ak sa stav medzičasom nezmenil na Menu, ulož dáta
-            if (ctx->current_state == current) {
-                ctx->stats = new_data;
+
+            StatsMessage new_data =
+                send_command(ctx->active_socket_path,
+                             MSG_SIM_GET_STATS,
+                             0, 0);
+
+            // 3️⃣ DETEKCIA NEPLATNEJ ODPOVEDE
+            int valid =
+                new_data.width  != 0 &&
+                new_data.height != 0;
+
+            if (valid) {
+
+                pthread_mutex_lock(&ctx->mutex);
+
+                // Stav sa nezmenil?
+                if (ctx->current_state == current) {
+
+                    ctx->stats = new_data;
+
+                    // 4️⃣ Koniec simulácie → STOP
+                    if (new_data.finished) {
+                        ctx->keep_running = 0;
+                        pthread_mutex_unlock(&ctx->mutex);
+                        break;
+                    }
+                }
+
+                pthread_mutex_unlock(&ctx->mutex);
             }
-            pthread_mutex_unlock(&ctx->mutex);
+            // ❗ neplatné dáta → IGNORUJEME
+
         } else {
-            // V menu alebo setupe vlákno len čaká a nič neposiela
-            usleep(500000); 
+            usleep(500000);
         }
-        usleep(100000); 
+
+        usleep(100000);
     }
+
     return NULL;
 }
+
 void client_run(void) {
     initscr();
     cbreak();

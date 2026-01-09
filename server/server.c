@@ -42,12 +42,18 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
 
         printf("[SERVER] SIM_RUN\n");
         simulation_run(state->sim, (Position){msg->x, msg->y});
+        if(state->sim->stats->total_runs >= state->sim->config.total_replications) {
+          state->should_exit = 1;
+    }    
 
     } else if (msg->type == MSG_SIM_STEP) {
 
         printf("[SERVER] SIM_STEP\n");
         //simulate_interactive(state->sim, mutex);     
         walker_move(state->sim->walker, state->sim->world);
+        if(state->sim->walker->at_finish) {
+          state->should_exit = 1;
+    } 
 
     } else if (msg->type == MSG_SIM_RESET) {
 
@@ -161,6 +167,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
     out.height      = state->sim->world->height;
     out.posX        = state->sim->walker->pos.x;
     out.posY        = state->sim->walker->pos.y;
+    out.finished    =state->should_exit;
 
     for (int y = 0; y < out.height && y < 50; y++) {
         for (int x = 0; x < out.width && x < 50; x++) {
@@ -179,6 +186,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
 
 void server_run(const char * socket_path) {
     ServerState state = {0};
+    state.should_exit = 0;
     pthread_mutex_t sim_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex pre P11
     
     int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -192,7 +200,7 @@ void server_run(const char * socket_path) {
 
     printf("[SERVER] Multithreaded server ready\n");
 
-    while (1) {
+    while (!state.should_exit) {
         int client_fd = accept(server_fd, NULL, NULL);
         if (client_fd < 0) continue;
 
@@ -210,7 +218,11 @@ void server_run(const char * socket_path) {
             free(data);
         }
     }
-    
+   
+    close(server_fd);
+    unlink(socket_path);
+
+    if(state.sim)simulation_destroy(state.sim);
     pthread_mutex_destroy(&sim_mutex);
 }
 

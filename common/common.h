@@ -36,6 +36,7 @@ typedef struct {
   int posX;
   int posY;
   int curr_steps;
+  _Bool finished;
 } StatsMessage;
 
 typedef enum {

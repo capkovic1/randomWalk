@@ -220,8 +220,13 @@ void draw_stats(StatsMessage *s , int offset_y , UIState state) {
       mvprintw(12 + offset_y, 4, "Total steps: %d", s->total_steps);
     } else if (state == UI_INTERACTIVE ) {
       mvprintw(9+ offset_y, 4, "Steps made currentli: %d" , s->curr_steps);
-      mvprintw(10 + offset_y, 4, "reached end : %d",s->succ_runs);
+      mvprintw(10 + offset_y, 4, "reached end : %d",s->finished);
     }
+  if (s->finished) {
+    mvprintw(0, 2, "SIMULACIA UKONCENA");
+    timeout(-1); 
+  }
+
 }
 
 
