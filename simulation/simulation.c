@@ -2,7 +2,8 @@
 #include "world.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <unistd.h>
+#include <pthread.h>
 Statistics * stat_create() {
   Statistics * stats = malloc(sizeof(Statistics));
   return stats;
@@ -64,6 +65,27 @@ _Bool simulation_run(Simulation *sim , Position pos) {
   return 1;
   
 }
+_Bool simulate_interactive(Simulation *sim, pthread_mutex_t *mutex) {
+    while (1) {
+        pthread_mutex_lock(mutex);
+        
+        // Kontrola konca
+        if (sim->walker->at_finish) {
+            pthread_mutex_unlock(mutex);
+            break;
+        }
+
+        // Vykonaj jeden pohyb
+        walker_move(sim->walker, sim->world);
+        
+        // P11: Odomkni, aby iní klienti mohli čítať stats (P10)
+        pthread_mutex_unlock(mutex);
+
+        // Krátka pauza, aby to neprebehlo okamžite (P10)
+        usleep(100000); // 0.1 sekundy
+    }
+    return 1;
+}
 
 _Bool simulation_run_n_times(Simulation * sim, Position pos, int times) {
   if (!world_is_accessible(sim->world, pos)) {
@@ -98,3 +120,4 @@ World* create_guaranteed_world(int w, int h, double ratio, Position start) {
     } while (!world_has_path(world, start)); // Opakuj, kým neexistuje cesta
     return world;
 }
+

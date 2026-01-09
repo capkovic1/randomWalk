@@ -3,6 +3,7 @@
 #include "../common/common.h"
 #include "../simulation/simulation.h"
 
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -45,6 +46,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
     } else if (msg->type == MSG_SIM_STEP) {
 
         printf("[SERVER] SIM_STEP\n");
+        //simulate_interactive(state->sim, mutex);     
         walker_move(state->sim->walker, state->sim->world);
 
     } else if (msg->type == MSG_SIM_RESET) {
@@ -100,6 +102,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg) {
             .width = msg->width,
             .height = msg->height,
             .max_steps_K = msg->max_steps,
+            .total_replications = msg->replications,
             .probs = (MoveProbabilities){
                 msg->probs[0],
                 msg->probs[1],

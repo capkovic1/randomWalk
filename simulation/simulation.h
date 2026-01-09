@@ -4,6 +4,7 @@
 
 #include "walker.h"
 #include "world.h"
+#include <pthread.h>
 
 typedef struct {
   int total_steps;
@@ -36,5 +37,5 @@ void reset_stats(Statistics * stats);
 Statistics* simulation_get_statistics(Simulation* sim);
 _Bool simulation_save_results(Simulation* sim, const char* filename);
 World* create_guaranteed_world(int w, int h, double ratio, Position start);
-
+_Bool simulate_interactive(Simulation *sim,  pthread_mutex_t *mutex); 
 #endif // SIMULATION_H

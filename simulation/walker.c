@@ -80,7 +80,6 @@ void walker_reset(Walker *walker, Position start) {
   walker->at_finish = 0;
   walker->pos = start;
   walker->steps_made = 0;
-  walker->num_of_sim++;
   walker->start_pos = start;
 }
 
