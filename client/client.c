@@ -73,7 +73,7 @@ void* receiver_thread_func(void* arg)
                     ctx->stats = new_data;
 
                     if (new_data.finished) {
-                        ctx->current_state = UI_MENU_MODE;
+                        ctx->keep_running = 0; // stop receiver but keep current_state so stats remain shown
                         pthread_mutex_unlock(&ctx->mutex);
                         break;
                     }

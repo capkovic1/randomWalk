@@ -10,5 +10,5 @@ typedef struct {
 } ClientThreadData;
 
 void server_run(const char * socket_path);
-void handle_message(ServerState * state , int client_fd , Message * msg);
+void handle_message(ServerState * state , int client_fd , Message * msg, pthread_mutex_t *mutex);
 

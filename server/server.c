@@ -13,6 +13,36 @@
 #include <string.h>
 #include <sys/time.h>
 
+typedef struct {
+    ServerState *state;
+    Position start;
+    int count;
+    pthread_mutex_t *mutex;
+} BatchRunArgs;
+
+void *batch_run_thread(void *arg) {
+    BatchRunArgs *a = (BatchRunArgs*)arg;
+    for (int i = 0; i < a->count; i++) {
+        // run single simulation with proper locking
+        pthread_mutex_lock(a->mutex);
+        simulation_run(a->state->sim, a->start);
+        pthread_mutex_unlock(a->mutex);
+
+        // small yield
+        usleep(1000);
+    }
+
+    // after finishing all runs, save results if requested and signal exit
+    if (a->state->sim && a->state->sim->filename && a->state->sim->filename[0] != '\0') {
+        pthread_mutex_lock(a->mutex);
+        simulation_save_results(a->state->sim, a->state->sim->filename);
+        pthread_mutex_unlock(a->mutex);
+    }
+    a->state->should_exit = 1;
+    free(a);
+    return NULL;
+}
+
 void* client_thread_func(void* arg) {
     ClientThreadData *data = (ClientThreadData*)arg;
     
@@ -21,7 +51,7 @@ void* client_thread_func(void* arg) {
         // P11: Zamkneme simuláciu, aby k nej iné vlákno v tomto čase nepristupovalo
         pthread_mutex_lock(data->mutex);
         
-        handle_message(data->state, data->client_fd, &msg);
+        handle_message(data->state, data->client_fd, &msg, data->mutex);
         
         pthread_mutex_unlock(data->mutex);
     }
@@ -31,16 +61,34 @@ void* client_thread_func(void* arg) {
     return NULL;
 }
 
-void handle_message(ServerState *state, int client_fd, Message *msg) {
+void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mutex_t *mutex) {
 
     if (msg->type == MSG_SIM_RUN) {
-        simulation_run(state->sim, (Position){msg->x, msg->y});
-                if(state->sim->stats->total_runs >= state->sim->config.total_replications) {
-                    // save final summary if filename provided
-                    if (state->sim->filename && state->sim->filename[0] != '\0') {
-                        simulation_save_results(state->sim, state->sim->filename);
-                    }
-                    state->should_exit = 1;
+        if (!state->sim) break;
+        int remaining = state->sim->config.total_replications - state->sim->stats->total_runs;
+        if (remaining <= 0) {
+            // nothing to do
+        } else if (remaining == 1) {
+            simulation_run(state->sim, (Position){msg->x, msg->y});
+            if(state->sim->stats->total_runs >= state->sim->config.total_replications) {
+                if (state->sim->filename && state->sim->filename[0] != '\0') {
+                    simulation_save_results(state->sim, state->sim->filename);
+                }
+                state->should_exit = 1;
+            }
+        } else {
+            // spawn background batch runner to perform remaining runs
+            BatchRunArgs *args = malloc(sizeof(BatchRunArgs));
+            args->state = state;
+            args->start = (Position){msg->x, msg->y};
+            args->count = remaining;
+            args->mutex = mutex;
+            pthread_t tid;
+            if (pthread_create(&tid, NULL, batch_run_thread, args) == 0) {
+                pthread_detach(tid);
+            } else {
+                free(args);
+            }
         }
 
     } else if (msg->type == MSG_SIM_STEP) {
