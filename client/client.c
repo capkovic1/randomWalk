@@ -71,7 +71,7 @@ void* receiver_thread_func(void* arg)
                     ctx->stats = new_data;
 
                     if (new_data.finished) {
-                        ctx->keep_running = 0;
+                        ctx->current_state = UI_MENU_MODE;
                         pthread_mutex_unlock(&ctx->mutex);
                         break;
                     }
