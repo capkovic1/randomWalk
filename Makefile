@@ -18,6 +18,7 @@ SIMULATION_SRCS = $(SIMULATION_DIR)/simulation.c $(SIMULATION_DIR)/walker.c $(SI
 CLIENT_OBJS = $(CLIENT_SRCS:.c=.o)
 SERVER_OBJS = $(SERVER_SRCS:.c=.o)
 SIMULATION_OBJS = $(SIMULATION_SRCS:.c=.o)
+COMMON_OBJS = $(COMMON_DIR)/ipc.o
 
 # Hlavičkové súbory
 CLIENT_HDRS = $(CLIENT_DIR)/client.h $(CLIENT_DIR)/ui.h
@@ -33,12 +34,12 @@ SERVER_EXEC = server_app
 all: $(CLIENT_EXEC) $(SERVER_EXEC)
 
 # Klient (používa ncurses)
-$(CLIENT_EXEC): $(CLIENT_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(CLIENT_OBJS) $(LDFLAGS)
+$(CLIENT_EXEC): $(CLIENT_OBJS) $(COMMON_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_OBJS) $(COMMON_OBJS) $(LDFLAGS)
 
 # Server (nepoužíva ncurses)
-$(SERVER_EXEC): $(SERVER_OBJS) $(SIMULATION_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(SERVER_OBJS) $(SIMULATION_OBJS)
+$(SERVER_EXEC): $(SERVER_OBJS) $(SIMULATION_OBJS) $(COMMON_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(SERVER_OBJS) $(SIMULATION_OBJS) $(COMMON_OBJS)
 
 # Pravidlo pre kompiláciu .c súborov
 %.o: %.c
