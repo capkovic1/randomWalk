@@ -1,6 +1,7 @@
 #include "server.h"
 #include "server_state.h"
 #include "../common/common.h"
+#include "../common/ipc.h"
 #include "../simulation/simulation.h"
 
 #include <pthread.h>
@@ -198,7 +199,10 @@ void server_run(const char * socket_path) {
     bind(server_fd, (struct sockaddr *)&addr, sizeof(addr));
     listen(server_fd, 10); // P4: Zvýšime frontu pre viac klientov
 
-    printf("[SERVER] Multithreaded server ready\n");
+    // P10: Registruj server v centrálnom registri
+    register_server(socket_path, 50, 50);
+
+    printf("[SERVER] Multithreaded server ready on %s\n", socket_path);
 
     while (!state.should_exit) {
         int client_fd = accept(server_fd, NULL, NULL);
@@ -221,6 +225,9 @@ void server_run(const char * socket_path) {
    
     close(server_fd);
     unlink(socket_path);
+    
+    // P10: Deregistruj server z registra
+    unregister_server(socket_path);
 
     if(state.sim)simulation_destroy(state.sim);
     pthread_mutex_destroy(&sim_mutex);

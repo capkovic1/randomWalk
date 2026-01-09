@@ -1,5 +1,6 @@
 #include "client.h"
 #include "../common/common.h"
+#include "../common/ipc.h"
 #include "ui.h"
 
 #include <sys/socket.h>
@@ -149,13 +150,13 @@ case UI_MENU_MODE: {
     if (conn_choice == 0) break; // Pouzivatel stlacil nieco ine
 
     // Vytvorime unikatnu cestu k socketu podla kodu
-    char current_socket_path[100];
-    sprintf(current_socket_path, "/tmp/drunk_%s.sock", room_code);
-    strncpy(ctx.active_socket_path, current_socket_path, 99);
+    char current_socket_path[256] = {0};
 
     if (conn_choice == 1) { // VYTVORIT NOVU
+        sprintf(current_socket_path, "/tmp/drunk_%s.sock", room_code);
+        strncpy(ctx.active_socket_path, current_socket_path, 255);
+        
         // Tu este potrebujeme vediet, ci to bude Interaktivny alebo Sumarny mod
-        // Mozes sem pridat tvoj povodny draw_mode_menu(&mode);
         ctx.current_state = draw_mode_menu(&mode); 
 
         if (ctx.current_state == UI_SETUP_SIM) {
@@ -169,21 +170,12 @@ case UI_MENU_MODE: {
             usleep(250000); // Cas pre server na bind()
         }
     } 
-    else if (conn_choice == 2) { // PRIPOJIT SA
-        // Skusime, ci miestnost existuje
-        int test_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-        struct sockaddr_un addr = {0};
-        addr.sun_family = AF_UNIX;
-        strcpy(addr.sun_path, current_socket_path);
-
-        if (connect(test_fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
-            close(test_fd);
+    else if (conn_choice == 2) { // PRIPOJIT SA - Výber z registra (P10)
+        if (draw_server_list_menu(current_socket_path)) {
+            strncpy(ctx.active_socket_path, current_socket_path, 255);
             // Ak existuje, ideme rovno do simulacie (vsetko si stiahne receiver_thread)
             ctx.current_state = UI_INTERACTIVE; 
         } else {
-            mvprintw(12, 6, "CHYBA: Miestnost %s neexistuje!", room_code);
-            refresh();
-            sleep(2);
             ctx.current_state = UI_MENU_MODE;
         }
     }

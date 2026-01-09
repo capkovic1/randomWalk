@@ -1,4 +1,5 @@
 #include "../common/common.h"
+#include "../common/ipc.h"
 #include "../simulation/simulation.h"
 #include <ncurses.h>
 #include <stdlib.h>
@@ -229,7 +230,57 @@ void draw_stats(StatsMessage *s , int offset_y , UIState state) {
 
 }
 
-
-
-
+// P10: Výber existujúceho servera z registra
+int draw_server_list_menu(char *selected_socket_path) {
+    cleanup_dead_servers();
+    
+    int count = 0;
+    ServerInfo *servers = list_available_servers(&count);
+    
+    if (count == 0) {
+        mvprintw(10, 4, "Ziadne dostupne servery!");
+        mvprintw(11, 4, "Stlac ESC na vrátenie");
+        refresh();
+        getch();
+        return 0; // Žiadne servery
+    }
+    
+    int selected = 0;
+    
+    while (1) {
+        clear();
+        mvprintw(2, 4, "=== DOSTUPNE SERVERY ===");
+        mvprintw(3, 4, "(%d servery dostupne)", count);
+        
+        for (int i = 0; i < count; i++) {
+            if (i == selected) {
+                attron(A_REVERSE);
+            }
+            mvprintw(5 + i, 6, "%s (%dx%d)", 
+                     servers[i].socket_path, 
+                     servers[i].width, 
+                     servers[i].height);
+            if (i == selected) {
+                attroff(A_REVERSE);
+            }
+        }
+        
+        mvprintw(6 + count, 4, "UP/DOWN = Vybrat | ENTER = Pridat sa | ESC = Spat");
+        refresh();
+        
+        int ch = getch();
+        if (ch == KEY_UP && selected > 0) {
+            selected--;
+        } else if (ch == KEY_DOWN && selected < count - 1) {
+            selected++;
+        } else if (ch == '\n') {
+            strncpy(selected_socket_path, servers[selected].socket_path, 255);
+            free(servers);
+            return 1; // Úspešne vybraný server
+        } else if (ch == 27) { // ESC
+            free(servers);
+            return 0;
+        }
+    }
+}
 
