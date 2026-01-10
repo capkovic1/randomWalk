@@ -1,3 +1,7 @@
+/**
+ * ui.c - NCurses UI rendering functions
+ * Displays menus, configuration dialogs, and simulation state
+ */
 #include "../common/common.h"
 #include "../common/ipc.h"
 #include "../simulation/simulation.h"
@@ -13,31 +17,28 @@ int draw_connection_menu(char *room_code) {
     mvprintw(7, 6, "Volba: ");
     refresh();
 
-    // Blocking čítanie - bez timeout!
-    // Nastavíme timeout na -1 aby bol getch() blocking
-    timeout(-1);
+    timeout(-1); // Blocking input
     int choice = 0;
     do {
         choice = getch();
         if (choice != '1' && choice != '2') {
-            choice = 0; // Neplatná voľba - skúsíme znova
+            choice = 0; // Invalid - retry
         }
     } while (choice == 0);
 
-    // Pri voľbe 1 - pýtaj sa na kod miestnosti
+    // Option 1: ask for room code
     if (choice == '1') {
         move(9, 6);
-        clrtoeol(); // Vyčistime riadok
+        clrtoeol();
         printw("Zadaj kod miestnosti (max 15 znakov): ");
         refresh();
         
-        echo();             // Zapneme zobrazovanie pisanych znakov
-        curs_set(1);        // Ukazeme kurzor
-        getnstr(room_code, 15); // Bezpecne nacitame retazec
-        noecho();           // Vypneme echo
-        curs_set(0);        // Schovame kurzor
+        echo();
+        curs_set(1);
+        getnstr(room_code, 15);
+        noecho();
+        curs_set(0);
     }
-    // Pri voľbe 2 - nie je treba kod miestnosti
 
     return (choice == '1') ? 1 : 2;
 }
@@ -50,8 +51,7 @@ UIState draw_mode_menu(int *mode) {
     mvprintw(7, 6, "q - Quit");
     refresh();
 
-    // Blocking čítanie
-    timeout(-1); // Čaká na vstup
+    timeout(-1);
     int ch = getch();
     
     if (ch == '1') { *mode = 1; return UI_SETUP_SIM; }
@@ -279,7 +279,6 @@ void draw_stats(StatsMessage *s , int offset_y , UIState state) {
 
 }
 
-// P10: Výber existujúceho servera z registra
 int draw_server_list_menu(char *selected_socket_path) {
     cleanup_dead_servers();
     
@@ -291,7 +290,7 @@ int draw_server_list_menu(char *selected_socket_path) {
         mvprintw(11, 4, "Stlac ESC na vrátenie");
         refresh();
         getch();
-        return 0; // Žiadne servery
+        return 0;
     }
     
     int selected = 0;
@@ -325,7 +324,7 @@ int draw_server_list_menu(char *selected_socket_path) {
         } else if (ch == '\n') {
             strncpy(selected_socket_path, servers[selected].socket_path, 255);
             free(servers);
-            return 1; // Úspešne vybraný server
+            return 1;
         } else if (ch == 27) { // ESC
             free(servers);
             return 0;
