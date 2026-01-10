@@ -4,17 +4,15 @@
 
 Walker* walker_create(Position start ,MoveProbabilities probs) {
   Walker *walker = malloc(sizeof(Walker));
+  if (!walker) return NULL;
   
   walker->pos = start;
   walker->start_pos = start;
   walker->probs = probs;
   walker->at_finish = 0;
   walker->steps_made = 0;
-  walker->num_of_sim =0;
+  walker->num_of_sim = 0;
   walker->succ_sim = 0;
-  return walker;
-
-
   return walker;
 }
 
@@ -91,7 +89,13 @@ int walker_get_steps(const Walker *walker) {
 }
 Trajectory * trajectory_create(int max_length) {
   Trajectory * trajectory = malloc(sizeof(Trajectory));
+  if (!trajectory) return NULL;
+  
   trajectory->pos = malloc(max_length * sizeof(Position));
+  if (!trajectory->pos) {
+    free(trajectory);
+    return NULL;
+  }
 
   trajectory->capacity = max_length;
   trajectory->steps_made = 0;
@@ -102,6 +106,7 @@ Trajectory * trajectory_create(int max_length) {
 }
 
 void trajectory_destroy(Trajectory *traj) {
+  if (!traj) return;
   free(traj->pos);
   free(traj);
 }

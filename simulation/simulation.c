@@ -5,6 +5,12 @@
 #include <string.h>
 Statistics * stat_create() {
   Statistics * stats = malloc(sizeof(Statistics));
+  if (stats) {
+    stats->total_steps = 0;
+    stats->max_steps = 0;
+    stats->succ_runs = 0;
+    stats->total_runs = 0;
+  }
   return stats;
 }
 void stat_destroy(Statistics *stat) {
@@ -17,13 +23,30 @@ Simulation * simulation_create(SimulationConfig config) {
   }
   
   Simulation * sim = malloc(sizeof(Simulation));
+  if (!sim) return NULL;
+  
   sim->world = world_create(config.width, config.height);
+  if (!sim->world) {
+    free(sim);
+    return NULL;
+  }
   
   Position pos = {5, 5};
   sim->walker = walker_create(pos, config.probs);
+  if (!sim->walker) {
+    world_destroy(sim->world);
+    free(sim);
+    return NULL;
+  }
 
   sim->config = config;
   sim->stats = stat_create();
+  if (!sim->stats) {
+    walker_destroy(sim->walker);
+    world_destroy(sim->world);
+    free(sim);
+    return NULL;
+  }
   sim->filename = NULL;
 
   return sim;
@@ -131,10 +154,20 @@ void reset_stats(Statistics *stats) {
 // Pomocná funkcia na vytvorenie garantovanej mapy
 World* create_guaranteed_world(int w, int h, double ratio, Position start) {
     World* world = NULL;
+    int max_attempts = 100;
+    int attempts = 0;
     do {
         if (world) world_destroy(world);
-        world = world_generate_random(w, h, ratio , start); 
-    } while (!world_has_path(world, start)); // Opakuj, kým neexistuje cesta
+        world = world_generate_random(w, h, ratio, start);
+        if (!world) return NULL; // Fail if malloc fails
+        attempts++;
+    } while (!world_has_path(world, start) && attempts < max_attempts);
+    
+    // If failed after max attempts, cleanup
+    if (attempts >= max_attempts && !world_has_path(world, start)) {
+        world_destroy(world);
+        return NULL;
+    }
     return world;
 }
 

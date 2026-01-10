@@ -282,13 +282,21 @@ void server_run(const char * socket_path) {
     
     // Create and bind Unix domain socket
     int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (server_fd < 0) return; // Error handling
+    
     struct sockaddr_un addr = {0};
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, socket_path , sizeof(addr.sun_path) - 1);
 
     unlink(socket_path);
-    bind(server_fd, (struct sockaddr *)&addr, sizeof(addr));
-    listen(server_fd, 10); // Queue for up to 10 pending connections
+    if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        close(server_fd);
+        return;
+    }
+    if (listen(server_fd, 10) < 0) {
+        close(server_fd);
+        return;
+    }
 
     // Register server so clients can find it
     register_server(socket_path, 50, 50);

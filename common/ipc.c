@@ -84,6 +84,11 @@ ServerInfo* list_available_servers(int *count) {
     
     // Druhý prechod: načítaj platné servery
     ServerInfo *servers = malloc(temp_count * sizeof(ServerInfo));
+    if (!servers) {
+        fclose(f);
+        *count = 0;
+        return NULL;
+    }
     int idx = 0;
     
     while (fgets(line, sizeof(line), f) && idx < temp_count) {
