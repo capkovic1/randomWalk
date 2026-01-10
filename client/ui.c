@@ -178,53 +178,47 @@ UIState draw_setup(
 }
 
 void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50], _Bool visited[50][50]) {
-    // Začíname vykresľovať od riadku 3 (aby sme mali miesto pre hlavičku)
     int y_offset = 3;
     
     for (int world_y = 0; world_y < height; world_y++) {
         for (int world_x = 0; world_x < width; world_x++) {
-            // Invertujeme y-súradnicu, aby (0,0) bol v ľavom dolnom rohu
-            int screen_y = y_offset + (height - 1 - world_y);  // Inverzia + offset
-            
-            int screen_x = 5 + world_x * 2;  // Offset od ľavého okraja + dvojnásobná šírka
+            int screen_y = y_offset + (height - 1 - world_y);
+            int screen_x = 5 + world_x * 2;
             
             if (posX == world_x && posY == world_y) {
-                attron(COLOR_PAIR(1));  // Chodec - červený
+                attron(COLOR_PAIR(1));
                 mvprintw(screen_y, screen_x, " @ ");
                 attroff(COLOR_PAIR(1));
             } else if (obstacle[world_y][world_x]) {
-                attron(COLOR_PAIR(2));  // Prekážka - modrá
+                attron(COLOR_PAIR(2));
                 mvprintw(screen_y, screen_x, " # ");
                 attroff(COLOR_PAIR(2));
             } else if (visited[world_y][world_x]) {
-                attron(COLOR_PAIR(3));  // Navštívené - zelené
+                attron(COLOR_PAIR(3));
                 mvprintw(screen_y, screen_x, " . ");
                 attroff(COLOR_PAIR(3));
             } else if (world_x == 0 && world_y == 0) {
               mvprintw(screen_y, screen_x, " O ");
             } else {
-                mvprintw(screen_y, screen_x, "   ");  // Prázdne - čierne
+                mvprintw(screen_y, screen_x, "   ");
             }
         }
     }
     
-    // Vykreslenie súradnicových osí
+    // Y axis labels (left side)
     attron(COLOR_PAIR(4));
-    
-    // Y-ová os (vertikálne čísla)
     for (int world_y = 0; world_y < height; world_y++) {
         int screen_y = y_offset + (height - 1 - world_y);
-        mvprintw(screen_y, 1, "%2d ", world_y);  // Čísla y-osi vľavo
+        mvprintw(screen_y, 0, "%2d", world_y);
     }
     
-    // X-ová os (horizontálne čísla)
-    mvprintw(y_offset + height, 5, " ");  // Posun pod svet
-    for (int world_x = 0; world_x < width; world_x++) {
-        mvprintw(y_offset + height, 5 + world_x * 2, "%2d ", world_x);  // Čísla x-osi dole
+    // X axis labels (bottom) - build single string
+    char x_axis[256] = {0};
+    int pos = 0;
+    for (int world_x = 0; world_x < width && world_x < 50; world_x++) {
+        pos += snprintf(x_axis + pos, sizeof(x_axis) - pos, "%2d", world_x);
     }
-    
-    // Označenie osí
-    mvprintw(y_offset - 1, 1, "Y\\X");  // Označenie osí v ľavom hornom rohu
+    mvprintw(y_offset + height, 5, "%s", x_axis);
     
     attroff(COLOR_PAIR(4));
 }

@@ -50,7 +50,7 @@ void handle_interactive_mode(
     
     move(2, 2);
     clrtoeol();
-    mvprintw(2, 2, "r - krok, c - reset, q - menu");
+    mvprintw(2, 2, "r=step, c=reset, q=menu");
     
     // Vykresliť svet
     int world_height = current_stats->height;
@@ -112,13 +112,17 @@ void handle_interactive_mode(
     int ch = read_input_from_queue(ctx);
     
     if (ch == 'r') {
-        // Jeden krok walkera
+        // One step forward
         send_command(ctx->active_socket_path, MSG_SIM_STEP, x, y);
     } 
     else if (ch == 'c') {
-        // Reset simulácie
-        initialized = 0; // Refresh obrazovku pri resete
-        send_command(ctx->active_socket_path, MSG_SIM_RESET, x, y);
+        // Reset: clear visited, keep obstacles
+        initialized = 0;
+        StatsMessage reset_response = send_command(ctx->active_socket_path, MSG_SIM_RESET, x, y);
+        // Update local state with reset response (contains fresh visited grid + obstacles)
+        pthread_mutex_lock(&ctx->mutex);
+        ctx->stats = reset_response;
+        pthread_mutex_unlock(&ctx->mutex);
     } 
     else if (ch == 'q') {
         // Návrat do menu
@@ -155,7 +159,7 @@ void handle_summary_mode(
     
     move(2, 2);
     clrtoeol();
-    mvprintw(2, 2, "r - spustit, c - reset, q - menu");
+    mvprintw(2, 2, "r=run, c=reset, q=menu");
     
     // Sumárne štatistiky
     move(4, 2);
