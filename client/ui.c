@@ -13,12 +13,22 @@ int draw_connection_menu(char *room_code) {
     mvprintw(7, 6, "Volba: ");
     refresh();
 
-    int choice = getch();
-    if (choice != '1' && choice != '2') return 0; // Neplatná voľba
+    // Blocking čítanie - bez timeout!
+    // Nastavíme timeout na -1 aby bol getch() blocking
+    int choice = 0;
+    do {
+        timeout(-1); // Blocking - čaká na vstup
+        choice = getch();
+        if (choice != '1' && choice != '2') {
+            choice = 0; // Neplatná voľba - skúsíme znova
+        }
+    } while (choice == 0);
 
     // Zadanie kódu miestnosti
     move(9, 6);
+    clrtoeol(); // Vyčistime riadok
     printw("Zadaj kod miestnosti (max 15 znakov): ");
+    refresh();
     
     echo();             // Zapneme zobrazovanie pisanych znakov
     curs_set(1);        // Ukazeme kurzor
@@ -34,13 +44,17 @@ UIState draw_mode_menu(int *mode) {
     mvprintw(2, 4, "Random Walk Simulation");
     mvprintw(4, 6, "1 - Interaktivny mod");
     mvprintw(5, 6, "2 - Sumarny mod");
-    mvprintw(7, 6, "q - Quit\n");
+    mvprintw(7, 6, "q - Quit");
     refresh();
 
+    // Blocking čítanie
+    timeout(-1); // Čaká na vstup
     int ch = getch();
+    
     if (ch == '1') { *mode = 1; return UI_SETUP_SIM; }
     if (ch == '2') { *mode = 2; return UI_SETUP_SIM; }
     if (ch == 'q') return UI_EXIT;
+    
     return UI_MENU_MODE;
 }
 UIState draw_setup(

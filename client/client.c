@@ -288,7 +288,7 @@ void client_run(void) {
 // =========================
 case UI_MENU_MODE: {
     
-    timeout(50);  // Non-blocking mode pre input thread (50ms) (P11)
+    timeout(-1);  // Blocking mode - čaká na vstup (resetujeme z 50ms)
     flushinp();
         
     pthread_mutex_lock(&ctx.mutex);
@@ -320,6 +320,8 @@ case UI_MENU_MODE: {
     // SETUP
     // =========================
     case UI_SETUP_SIM: {
+        timeout(-1);  // Blocking mode pre draw_setup()
+        
         UIState next = draw_setup(
             &x, &y, &K, &runs,
             &width, &height,
@@ -367,6 +369,8 @@ case UI_MENU_MODE: {
     // =========================
     case UI_INTERACTIVE:
     case UI_SUMMARY: {
+        timeout(50);  // Non-blocking mode pre input thread (50ms) (P11)
+        
         pthread_mutex_lock(&ctx.mutex);
         StatsMessage current_stats = ctx.stats;
         UIState mode = ctx.current_state;
