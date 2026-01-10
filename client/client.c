@@ -51,7 +51,7 @@
  * PROBLÉM: Táto funkcia je blokujúca - čaká kým server odpovedá
  * Lepší prístup: receiver_thread_func() (IMPLEMENTOVANÉ) vs input_thread (TODO)
  */
-static StatsMessage send_command(const char* socket_path, MessageType type, int x, int y) {
+StatsMessage send_command(const char* socket_path, MessageType type, int x, int y) {
     StatsMessage stats;
     memset(&stats, 0, sizeof(stats));
 

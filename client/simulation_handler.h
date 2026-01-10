@@ -2,9 +2,7 @@
 #define SIMULATION_HANDLER_H
 
 #include "../common/common.h"
-
-// Forward declaration of send_command from client.c
-extern StatsMessage send_command(const char* socket_path, MessageType type, int x, int y);
+#include "client.h"
 
 /**
  * Handle interaktívny mód - krok za krokom
