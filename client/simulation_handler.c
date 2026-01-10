@@ -36,7 +36,7 @@ void handle_interactive_mode(
     StatsMessage *current_stats,
     int x, int y, int K __attribute__((unused)), int runs __attribute__((unused))
 ) {
-    clear();
+    erase(); // Efektívnejší ako clear() - bez flicker
     
     // Horná časť - interaktívny mód
     mvprintw(1, 2, "INTERAKTIVNY MOD | Start: (%d,%d)", x, y);
@@ -107,7 +107,7 @@ void handle_summary_mode(
     StatsMessage *current_stats,
     int x, int y, int K, int runs
 ) {
-    clear();
+    erase(); // Efektívnejší ako clear() - bez flicker
     
     mvprintw(1, 2, "SUMARNY MOD | K=%d, replikacie=%d", K, runs);
     mvprintw(2, 2, "r - spustit, c - reset, q - menu");
