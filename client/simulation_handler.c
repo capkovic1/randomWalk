@@ -29,6 +29,7 @@ int read_input_from_queue(ClientContext *ctx) {
  * Handle interaktívny mód
  * - Zobrazí svet a štatistiky
  * - Čaká na vstup: r (krok), c (reset), q (menu)
+ * - Zobrazí aj globálne štatistiky zo servera (ak sú iní klienti)
  */
 void handle_interactive_mode(
     ClientContext *ctx,
@@ -37,19 +38,40 @@ void handle_interactive_mode(
 ) {
     clear();
     
+    // Horná časť - interaktívny mód
     mvprintw(1, 2, "INTERAKTIVNY MOD | Start: (%d,%d)", x, y);
     mvprintw(2, 2, "r - krok, c - reset, q - menu");
     
+    // Vykresliť svet
+    int world_height = current_stats->height;
+    int world_width = current_stats->width;
     draw_world(
-        current_stats->height,
-        current_stats->width,
+        world_height,
+        world_width,
         current_stats->posX,
         current_stats->posY,
         current_stats->obstacle,
         current_stats->visited
     );
     
-    draw_stats(current_stats, 3 + current_stats->height + 2, UI_INTERACTIVE);
+    // Spodná časť - globálne štatistiky (z sumárneho módu iných klientov)
+    int stats_y = 3 + world_height + 2;
+    
+    mvprintw(stats_y, 2, "=== GLOBALNE STATISTIKY (ine klienty) ===");
+    mvprintw(stats_y + 1, 2, "Celk. behy: %d | Uspechy: %d (%.1f%%)",
+        current_stats->total_runs,
+        current_stats->succ_runs,
+        current_stats->total_runs > 0 ? (current_stats->success_rate_permille / 10.0) : 0.0
+    );
+    mvprintw(stats_y + 2, 2, "Celk. krokov: %d | Zvysajuci: %d",
+        current_stats->total_steps,
+        current_stats->remaining_runs
+    );
+    
+    // Ak je simulacia hotova
+    if (current_stats->finished) {
+        mvprintw(stats_y + 3, 2, "[SIMULACIA SKONCENA]");
+    }
     
     refresh();
     timeout(50); // Non-blocking getch
@@ -77,6 +99,7 @@ void handle_interactive_mode(
  * Handle sumárny mód
  * - Spúšťa N replikácií na serveri
  * - Zobrazí agregované štatistiky
+ * - Zobrazí aj krok-za-krokom progres ak sú iní klienti v interaktívnom móde
  * - Čaká na vstup: r (spustiť), c (reset), q (menu)
  */
 void handle_summary_mode(
@@ -89,7 +112,28 @@ void handle_summary_mode(
     mvprintw(1, 2, "SUMARNY MOD | K=%d, replikacie=%d", K, runs);
     mvprintw(2, 2, "r - spustit, c - reset, q - menu");
     
-    draw_stats(current_stats, 5, UI_SUMMARY);
+    // Sumárne štatistiky
+    mvprintw(4, 2, "=== STATISTIKY REPLIKACII ===");
+    mvprintw(5, 2, "Celk. behy: %d/%d | Uspechy: %d",
+        current_stats->total_runs,
+        runs,
+        current_stats->succ_runs
+    );
+    mvprintw(6, 2, "Uspecnost: %.1f%% | Priemer krokov: %.1f",
+        current_stats->total_runs > 0 ? (current_stats->success_rate_permille / 10.0) : 0.0,
+        current_stats->total_runs > 0 ? ((float)current_stats->total_steps / current_stats->total_runs) : 0.0
+    );
+    
+    // Indikátor z iných klientov (ak sú v interaktívnom móde)
+    if (current_stats->posX != x || current_stats->posY != y || current_stats->curr_steps > 0) {
+        mvprintw(8, 2, "=== INTERAKTIVNY PROGRESS (INIE KLIENTY) ===");
+        mvprintw(9, 2, "Pozicia: (%d,%d) | Krokov: %d/%d",
+            current_stats->posX,
+            current_stats->posY,
+            current_stats->curr_steps,
+            K
+        );
+    }
     
     // V summary móde: ak je finished alebo remaining_runs == 0, automaticky reset
     if (current_stats->finished || current_stats->remaining_runs == 0) {
