@@ -183,6 +183,17 @@ void* input_thread_func(void* arg) {
     ClientContext* ctx = (ClientContext*)arg;
     
     while (ctx->keep_running) {
+        // Čítame vstup len v INTERACTIVE a SUMMARY módoch
+        pthread_mutex_lock(&ctx->mutex);
+        UIState current_state = ctx->current_state;
+        pthread_mutex_unlock(&ctx->mutex);
+        
+        if (current_state != UI_INTERACTIVE && current_state != UI_SUMMARY) {
+            // V menu a setup módoch sleep - vstup sa číta direktne
+            usleep(50000); // 50ms pause
+            continue;
+        }
+        
         // Non-blocking čítanie - timeout je nastavený v main (50ms)
         int ch = getch();
         
@@ -288,9 +299,8 @@ void client_run(void) {
 // =========================
 case UI_MENU_MODE: {
     
-    timeout(-1);  // Blocking mode - čaká na vstup (resetujeme z 50ms)
-    flushinp();
-        
+    timeout(-1);  // Blocking mode - čaká na vstup
+    
     pthread_mutex_lock(&ctx.mutex);
     memset(&ctx.stats, 0, sizeof(ctx.stats));
     pthread_mutex_unlock(&ctx.mutex);

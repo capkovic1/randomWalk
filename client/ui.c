@@ -15,26 +15,29 @@ int draw_connection_menu(char *room_code) {
 
     // Blocking čítanie - bez timeout!
     // Nastavíme timeout na -1 aby bol getch() blocking
+    timeout(-1);
     int choice = 0;
     do {
-        timeout(-1); // Blocking - čaká na vstup
         choice = getch();
         if (choice != '1' && choice != '2') {
             choice = 0; // Neplatná voľba - skúsíme znova
         }
     } while (choice == 0);
 
-    // Zadanie kódu miestnosti
-    move(9, 6);
-    clrtoeol(); // Vyčistime riadok
-    printw("Zadaj kod miestnosti (max 15 znakov): ");
-    refresh();
-    
-    echo();             // Zapneme zobrazovanie pisanych znakov
-    curs_set(1);        // Ukazeme kurzor
-    getnstr(room_code, 15); // Bezpecne nacitame retazec
-    noecho();           // Vypneme echo
-    curs_set(0);        // Schovame kurzor
+    // Pri voľbe 1 - pýtaj sa na kod miestnosti
+    if (choice == '1') {
+        move(9, 6);
+        clrtoeol(); // Vyčistime riadok
+        printw("Zadaj kod miestnosti (max 15 znakov): ");
+        refresh();
+        
+        echo();             // Zapneme zobrazovanie pisanych znakov
+        curs_set(1);        // Ukazeme kurzor
+        getnstr(room_code, 15); // Bezpecne nacitame retazec
+        noecho();           // Vypneme echo
+        curs_set(0);        // Schovame kurzor
+    }
+    // Pri voľbe 2 - nie je treba kod miestnosti
 
     return (choice == '1') ? 1 : 2;
 }
