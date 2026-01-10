@@ -1,3 +1,34 @@
+/**
+ * ============================================================================
+ * FILE: server/server.c
+ * ============================================================================
+ * ROLE: Server aplikácie Random Walk
+ * - Spravuje simuláciu a jej stav
+ * - Komunikuje s klientmi cez Unix domain sockety
+ * - Spúšťa simulačnú logiku (walker, world, statistics)
+ * - Podporuje viacerých klientov pripojiť sa k jednej simulácii (P4, P5)
+ * 
+ * ARCHITEKTÚRA (P3, P4, P5, P8, P11):
+ * - Proces: server_app (fork z client.c)
+ * - Spúšťa sa: execl("./server_app", "./server_app", socket_path, NULL)
+ * - Vlákna:
+ *   1) main thread - accept() nových klientov (listen loop)
+ *   2) client_thread - jedno vlákno pre každého klienta
+ *   3) batch_run_thread - spúšťa N replikácií na pozadí
+ * 
+ * IPC (P9, P10):
+ * - Type: Unix domain sockets (SOCK_STREAM)
+ * - Socket path: /tmp/drunk_<room_code>.sock (je dostane ako argument)
+ * - Registry: /tmp/drunk_servers_registry.txt (viditeľnosť pre iných klientov)
+ * 
+ * SIMULÁCIA (P8):
+ * - simulation_run() - jedna replikácia
+ * - walker_move() - jeden krok walkera
+ * - Štatistiky: počet behu, úspešnosti, krokov
+ * 
+ * ============================================================================
+ */
+
 #include "server.h"
 #include "server_state.h"
 #include "../common/common.h"
@@ -13,6 +44,27 @@
 #include <string.h>
 #include <sys/time.h>
 
+/**
+ * batch_run_thread()
+ * ============================================================================
+ * VLÁKNO: Spúšťa N replikácií na pozadí (FR9)
+ * 
+ * Keď klient požiada MSG_SIM_RUN a ostáva veľa replikácií, server:
+ * 1) Vytvorí toto vlákno namiesto blokujúceho behu
+ * 2) Vlákno spustí všetky zvyšné replikácie v slučke
+ * 3) Po skončení uloží výsledky a signalizuje exit
+ * 
+ * SYNCHRONIZÁCIA (P11):
+ * - pthread_mutex_lock() pred simulation_run() - aby ostatní klienti nemohli
+ *   pristúpiť k menej dátam počas behu
+ * - usleep(1000) po každom behu - aby ostatní klienti mali šancu aktualizovať
+ * 
+ * PROBLÉMY:
+ * ❌ Detachuje vlákno bez wait - možné memory leaky
+ * ⚠️  Nespravuje chyby pri save_results
+ * 
+ * ============================================================================
+ */
 typedef struct {
     ServerState *state;
     Position start;
@@ -42,6 +94,26 @@ void *batch_run_thread(void *arg) {
     return NULL;
 }
 
+/**
+ * client_thread_func()
+ * ============================================================================
+ * VLÁKNO: Spracováva jedného klienta (P4, P11)
+ * 
+ * Pre každého nového klienta, server:
+ * 1) Príjme message cez socket
+ * 2) Zamkne mutex (simulácia sa nesmie meniť počas behu iného klienta)
+ * 3) Zavolá handle_message()
+ * 4) Odomkne mutex a uzavrie socket
+ * 
+ * SYNCHRONIZÁCIA (P11):
+ * - Mutexom chránená simulácia - aby len jeden klient mohol modify naraz
+ * 
+ * PROBLÉM:
+ * ⚠️  Čaká na jednu správu a vracia sa (nemôže spracovať streaming)
+ * - Riešenie: Implementovať persistent connection + loop
+ * 
+ * ============================================================================
+ */
 void* client_thread_func(void* arg) {
     ClientThreadData *data = (ClientThreadData*)arg;
     
@@ -60,6 +132,52 @@ void* client_thread_func(void* arg) {
     return NULL;
 }
 
+/**
+ * handle_message()
+ * ============================================================================
+ * SPRACOVANIE SPRÁV OD KLIENTOV (P9)
+ * 
+ * Táto funkcia reaguje na všetky typy správ od klientov:
+ * 
+ * 1) MSG_SIM_RUN (linka 60-85)
+ *    - Spustí zvyšné replikácie
+ *    - Ak je len 1 zostávajúca, spustí ju synchrónne
+ *    - Inak spustí batch_run_thread na pozadí
+ * 
+ * 2) MSG_SIM_STEP (linka 86-98)
+ *    - Jeden krok walkera (interaktívny mód)
+ *    - walker_move() - náhodný pohyb
+ *    - Kontrola: dostal sa do stredu? Prekročil max kroky?
+ * 
+ * 3) MSG_SIM_RESET (linka 99-116)
+ *    - Resetovanie (ale bez vymazania štatistík)
+ *    - Vracia aktuálny stav
+ * 
+ * 4) MSG_SIM_INIT (linka 117-158)
+ *    - Inicializácia - nastavenie startovnej pozície
+ *    - Vymazanie visited[][] a barrier
+ * 
+ * 5) MSG_SIM_CONFIG (linka 159-211)
+ *    - Nová konfigurácia simulácie
+ *    - Vytvorí nový svet
+ *    - Resetuje štatistiky
+ * 
+ * 6) MSG_SIM_GET_STATS (default)
+ *    - Najčastejší príkaz - čítanie aktuálneho stavu
+ *    - Vracia StatsMessage s všetkými údajmi
+ * 
+ * SYNCHRONIZÁCIA (P11):
+ * - receive_thread_func() zamkne mutex pred volaním
+ * - V MSG_SIM_STEP: simulate_interactive() tiež zamyká
+ * 
+ * PROBLÉMOVÉ MIESTA:
+ * ⚠️  MSG_SIM_CONFIG neresetuje visited[][] - zobrazujú sa staré trajektórie
+ * ⚠️  MSG_SIM_RUN bez synchronizácie klientov - všetci môžu spustiť
+ * ❌ TODO: Broadcast módu keď zmení jeden klient
+ * ❌ TODO: Spravovanie chýb pri operáciách
+ * 
+ * ============================================================================
+ */
 void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mutex_t *mutex) {
 
     if (msg->type == MSG_SIM_RUN) {
@@ -269,6 +387,44 @@ void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mut
 }
 
 
+/**
+ * server_run()
+ * ============================================================================
+ * HLAVNÁ FUNKCIA SERVERA (P3, P5)
+ * 
+ * Spravuje:
+ * 1) Listen loop - čaká na pripojenie nových klientov
+ * 2) Pre každého klienta - vytvorí vlákno (client_thread_func)
+ * 3) Mutex - chráni simuláciu (P11)
+ * 4) Registry - vyhľadávateľnosť pre iných klientov (P10)
+ * 
+ * POSTUP:
+ * 1) socket() - vytvorí Unix domain socket
+ * 2) bind() - viazne socket na cestu (socket_path)
+ * 3) listen() - počúva na pripojenia (P4 - fronta pre 10 klientov)
+ * 4) Loop:
+ *    - accept() - čaká na nového klienta
+ *    - pthread_create() - spúšťa vlákno
+ *    - pthread_detach() - vlákno sa vyčisti po skončení
+ * 5) Koniec: pokým state->should_exit == 1
+ * 
+ * SYNCHRONIZÁCIA (P11):
+ * - sim_mutex - mutexom chránená simulácia
+ * - Každé vlákno zamkne pred MSG_SIM_RUN/STEP/CONFIG
+ * 
+ * REGISTRY (P10):
+ * - register_server(socket_path, 50, 50) - zaregistruj sa na začiatku
+ * - unregister_server(socket_path) - odregistruj sa na konci
+ * - Ostatní klienti môžu nájsť server v /tmp/drunk_servers_registry.txt
+ * 
+ * PROBLÉMY V KÓDE:
+ * ⚠️  Linka 263: listen(server_fd, 10) - malá fronta (OK)
+ * ⚠️  Linka 267: setsockopt timeout - 1 sekunda (OK ale mohla byť menšia)
+ * ⚠️  Nespravuje chyby pri bind() - možná file already exists
+ * ❌ TODO: Cleanup pri exit (unregister_server, unlink socket)
+ * 
+ * ============================================================================
+ */
 void server_run(const char * socket_path) {
     ServerState state = {0};
     state.should_exit = 0;
