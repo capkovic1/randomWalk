@@ -21,12 +21,6 @@
 #include <string.h>
 #include <sys/time.h>
 
-/**
- * batch_run_thread()
- * ============================================================================
- * VLÁKNO: Spúšťa N replikácií na pozadí (FR9)
- * 
- * Keď klient požiada MSG_SIM_RUN a ostáva veľa replikácií, server:
 typedef struct {
     ServerState *state;
     Position start;
