@@ -318,7 +318,19 @@ case UI_MENU_MODE: {
                 execl("./server_app", "./server_app", current_socket_path, NULL);
                 exit(1);
             }
-            usleep(250000); // Cas pre server na bind()
+            // Pockat viacej a retry-t connect kym sa server nespusti
+            for (int retry = 0; retry < 20; retry++) {
+                usleep(100000); // 100ms per retry = 2 sekund celkom
+                struct sockaddr_un test_addr = {0};
+                test_addr.sun_family = AF_UNIX;
+                strncpy(test_addr.sun_path, current_socket_path, sizeof(test_addr.sun_path) - 1);
+                int test_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+                if (connect(test_fd, (struct sockaddr *)&test_addr, sizeof(test_addr)) == 0) {
+                    close(test_fd);
+                    break; // Server uz viaceroval, mozeme pokracovat
+                }
+                close(test_fd);
+            }
         }
     } 
     else if (conn_choice == 2) { // PRIPOJIT SA - Výber z registra (P10)
@@ -361,39 +373,63 @@ case UI_MENU_MODE: {
         int fd = socket(AF_UNIX, SOCK_STREAM, 0);
         struct sockaddr_un addr = {0};
         addr.sun_family = AF_UNIX;
-        strcpy(addr.sun_path,ctx.active_socket_path );
+        strncpy(addr.sun_path, ctx.active_socket_path, sizeof(addr.sun_path) - 1);
 
-        if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
-
-            Message configMsg;
-            memset(&configMsg, 0, sizeof(configMsg));
-            configMsg.type = MSG_SIM_CONFIG;
-            configMsg.x = x; configMsg.y = y;
-            configMsg.width = width; configMsg.height = height;
-            configMsg.max_steps = K; configMsg.replications = runs;
-            memcpy(configMsg.probs, probs, sizeof(probs));
-            if (out_filename[0] != '\0') {
-                strncpy(configMsg.out_filename, out_filename, sizeof(configMsg.out_filename)-1);
-            }
-            write(fd, &configMsg, sizeof(configMsg));
-
-            StatsMessage temp_stats = {0};
-            size_t got = 0;
-            while (got < sizeof(temp_stats)) {
-                int r = read(fd,
-                    ((char*)&temp_stats) + got,
-                    sizeof(temp_stats) - got);
-                if (r <= 0) break;
-                got += r;
-            }
-
-            pthread_mutex_lock(&ctx.mutex);
-            ctx.stats = temp_stats;
-            ctx.current_state = next;
-            pthread_mutex_unlock(&ctx.mutex);
-
+        if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+            // Chyba pri pripojení - vráť do menu a zobraz správu
             close(fd);
+            clear();
+            mvprintw(5, 5, "CHYBA: Nie je mozne sa pripojit na server!");
+            mvprintw(7, 5, "Stlac lubovolnu klavesu...");
+            refresh();
+            getch();
+            pthread_mutex_lock(&ctx.mutex);
+            ctx.current_state = UI_MENU_MODE;
+            pthread_mutex_unlock(&ctx.mutex);
+            break;
         }
+
+        Message configMsg;
+        memset(&configMsg, 0, sizeof(configMsg));
+        configMsg.type = MSG_SIM_CONFIG;
+        configMsg.x = x; configMsg.y = y;
+        configMsg.width = width; configMsg.height = height;
+        configMsg.max_steps = K; configMsg.replications = runs;
+        memcpy(configMsg.probs, probs, sizeof(probs));
+        if (out_filename[0] != '\0') {
+            strncpy(configMsg.out_filename, out_filename, sizeof(configMsg.out_filename)-1);
+        }
+        
+        if (write(fd, &configMsg, sizeof(configMsg)) <= 0) {
+            // Chyba pri poslaní - vráť do menu
+            close(fd);
+            clear();
+            mvprintw(5, 5, "CHYBA: Nie je mozne poslat konfiguraciu serveru!");
+            mvprintw(7, 5, "Stlac lubovolnu klavesu...");
+            refresh();
+            getch();
+            pthread_mutex_lock(&ctx.mutex);
+            ctx.current_state = UI_MENU_MODE;
+            pthread_mutex_unlock(&ctx.mutex);
+            break;
+        }
+
+        StatsMessage temp_stats = {0};
+        size_t got = 0;
+        while (got < sizeof(temp_stats)) {
+            int r = read(fd,
+                ((char*)&temp_stats) + got,
+                sizeof(temp_stats) - got);
+            if (r <= 0) break;
+            got += r;
+        }
+
+        pthread_mutex_lock(&ctx.mutex);
+        ctx.stats = temp_stats;
+        ctx.current_state = next;
+        pthread_mutex_unlock(&ctx.mutex);
+
+        close(fd);
         break;
     }
 
