@@ -3,6 +3,9 @@
 
 #include "../common/common.h"
 
+// Forward declaration of send_command from client.c
+extern StatsMessage send_command(const char* socket_path, MessageType type, int x, int y);
+
 /**
  * Handle interaktívny mód - krok za krokom
  */

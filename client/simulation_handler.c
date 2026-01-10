@@ -3,9 +3,7 @@
 #include "../common/common.h"
 #include <ncurses.h>
 #include <pthread.h>
-
-// Forward declaration - definované v client.c
-extern StatsMessage send_command(const char* socket_path, MessageType type, int x, int y);
+#include <string.h>
 
 /**
  * Čítanie vstupov z thread-safe queue
@@ -35,7 +33,7 @@ int read_input_from_queue(ClientContext *ctx) {
 void handle_interactive_mode(
     ClientContext *ctx,
     StatsMessage *current_stats,
-    int x, int y, int K, int runs
+    int x, int y, int K __attribute__((unused)), int runs __attribute__((unused))
 ) {
     clear();
     
