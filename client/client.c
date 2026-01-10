@@ -27,6 +27,8 @@
 #include "../common/common.h"
 #include "../common/ipc.h"
 #include "ui.h"
+#include "menu_handler.h"
+#include "simulation_handler.h"
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -284,7 +286,6 @@ void client_run(void) {
    // =========================
 // MENU
 // =========================
-// V client_run prepis cast case UI_MENU_MODE:
 case UI_MENU_MODE: {
     
     timeout(50);  // Non-blocking mode pre input thread (50ms) (P11)
@@ -299,49 +300,19 @@ case UI_MENU_MODE: {
 
     if (conn_choice == 0) break; // Pouzivatel stlacil nieco ine
 
-    // Vytvorime unikatnu cestu k socketu podla kodu
-    char current_socket_path[256] = {0};
-
-    if (conn_choice == 1) { // VYTVORIT NOVU
-        sprintf(current_socket_path, "/tmp/drunk_%s.sock", room_code);
-        strncpy(ctx.active_socket_path, current_socket_path, sizeof(ctx.active_socket_path) - 1);
-        ctx.active_socket_path[sizeof(ctx.active_socket_path) - 1] = '\0';
-        
-        // Tu este potrebujeme vediet, ci to bude Interaktivny alebo Sumarny mod
-        ctx.current_state = draw_mode_menu(&mode); 
-
-        if (ctx.current_state == UI_SETUP_SIM) {
-            pid_t pid = fork();
-            if (pid == 0) {
-                setsid();
-                // Serveru odovzdame cestu k socketu ako argument
-                execl("./server_app", "./server_app", current_socket_path, NULL);
-                exit(1);
-            }
-            // Pockat viacej a retry-t connect kym sa server nespusti
-            for (int retry = 0; retry < 20; retry++) {
-                usleep(100000); // 100ms per retry = 2 sekund celkom
-                struct sockaddr_un test_addr = {0};
-                test_addr.sun_family = AF_UNIX;
-                strncpy(test_addr.sun_path, current_socket_path, sizeof(test_addr.sun_path) - 1);
-                int test_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-                if (connect(test_fd, (struct sockaddr *)&test_addr, sizeof(test_addr)) == 0) {
-                    close(test_fd);
-                    break; // Server uz viaceroval, mozeme pokracovat
-                }
-                close(test_fd);
-            }
-        }
+    if (conn_choice == 1) {
+        // ===== VYTVORIT NOVU MIESTNOST =====
+        UIState result = handle_create_new_server(&ctx, room_code, &mode);
+        pthread_mutex_lock(&ctx.mutex);
+        ctx.current_state = result;
+        pthread_mutex_unlock(&ctx.mutex);
     } 
-    else if (conn_choice == 2) { // PRIPOJIT SA - Výber z registra (P10)
-        if (draw_server_list_menu(current_socket_path)) {
-            strncpy(ctx.active_socket_path, current_socket_path, sizeof(ctx.active_socket_path) - 1);
-            ctx.active_socket_path[sizeof(ctx.active_socket_path) - 1] = '\0';
-            // Ak existuje, ideme rovno do simulacie (vsetko si stiahne receiver_thread)
-            ctx.current_state = UI_INTERACTIVE; 
-        } else {
-            ctx.current_state = UI_MENU_MODE;
-        }
+    else if (conn_choice == 2) {
+        // ===== PRIPOJIT SA K EXISTUJUCEJ =====
+        UIState result = handle_connect_to_existing(&ctx);
+        pthread_mutex_lock(&ctx.mutex);
+        ctx.current_state = result;
+        pthread_mutex_unlock(&ctx.mutex);
     }
     break;
 }
@@ -370,66 +341,24 @@ case UI_MENU_MODE: {
         }
 
         // 🔹 potvrdený setup → pošli konfiguráciu
-        int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-        struct sockaddr_un addr = {0};
-        addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, ctx.active_socket_path, sizeof(addr.sun_path) - 1);
+        int success = send_config_to_server(
+            &ctx,
+            x, y,
+            width, height,
+            K, runs,
+            probs,
+            out_filename,
+            &next
+        );
 
-        if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
-            // Chyba pri pripojení - vráť do menu a zobraz správu
-            close(fd);
-            clear();
-            mvprintw(5, 5, "CHYBA: Nie je mozne sa pripojit na server!");
-            mvprintw(7, 5, "Stlac lubovolnu klavesu...");
-            refresh();
-            getch();
-            pthread_mutex_lock(&ctx.mutex);
-            ctx.current_state = UI_MENU_MODE;
-            pthread_mutex_unlock(&ctx.mutex);
-            break;
-        }
-
-        Message configMsg;
-        memset(&configMsg, 0, sizeof(configMsg));
-        configMsg.type = MSG_SIM_CONFIG;
-        configMsg.x = x; configMsg.y = y;
-        configMsg.width = width; configMsg.height = height;
-        configMsg.max_steps = K; configMsg.replications = runs;
-        memcpy(configMsg.probs, probs, sizeof(probs));
-        if (out_filename[0] != '\0') {
-            strncpy(configMsg.out_filename, out_filename, sizeof(configMsg.out_filename)-1);
-        }
-        
-        if (write(fd, &configMsg, sizeof(configMsg)) <= 0) {
+        if (!success) {
             // Chyba pri poslaní - vráť do menu
-            close(fd);
-            clear();
-            mvprintw(5, 5, "CHYBA: Nie je mozne poslat konfiguraciu serveru!");
-            mvprintw(7, 5, "Stlac lubovolnu klavesu...");
-            refresh();
-            getch();
             pthread_mutex_lock(&ctx.mutex);
             ctx.current_state = UI_MENU_MODE;
             pthread_mutex_unlock(&ctx.mutex);
-            break;
         }
+        // Inak sa ctx.current_state už nastavil v send_config_to_server()
 
-        StatsMessage temp_stats = {0};
-        size_t got = 0;
-        while (got < sizeof(temp_stats)) {
-            int r = read(fd,
-                ((char*)&temp_stats) + got,
-                sizeof(temp_stats) - got);
-            if (r <= 0) break;
-            got += r;
-        }
-
-        pthread_mutex_lock(&ctx.mutex);
-        ctx.stats = temp_stats;
-        ctx.current_state = next;
-        pthread_mutex_unlock(&ctx.mutex);
-
-        close(fd);
         break;
     }
 
@@ -438,70 +367,15 @@ case UI_MENU_MODE: {
     // =========================
     case UI_INTERACTIVE:
     case UI_SUMMARY: {
-        clear();
-
         pthread_mutex_lock(&ctx.mutex);
         StatsMessage current_stats = ctx.stats;
+        UIState mode = ctx.current_state;
         pthread_mutex_unlock(&ctx.mutex);
 
-        // V summary móde: ak je finished alebo remaining_runs == 0, automaticky reset
-        if (local_state == UI_SUMMARY && (current_stats.finished || current_stats.remaining_runs == 0)) {
-            if (current_stats.total_runs > 0) {
-                send_command(ctx.active_socket_path, MSG_SIM_RESET, x, y);
-            }
-        }
-
-        if (local_state == UI_INTERACTIVE) {
-            mvprintw(1, 2, "INTERAKTIVNY MOD | Start: (%d,%d)", x, y);
-            mvprintw(2, 2, "r - krok, c - reset, q - menu");
-            draw_world(
-                current_stats.height,
-                current_stats.width,
-                current_stats.posX,
-                current_stats.posY,
-                current_stats.obstacle,
-                current_stats.visited
-            );
-            draw_stats(&current_stats,
-                3 + current_stats.height + 2,
-                local_state);
+        if (mode == UI_INTERACTIVE) {
+            handle_interactive_mode(&ctx, &current_stats, x, y, K, runs);
         } else {
-            mvprintw(1, 2, "SUMARNY MOD | K=%d, replikacie=%d", K, runs);
-            mvprintw(2, 2, "r - spustit, c - reset, q - menu \n");
-            draw_stats(&current_stats, 5, local_state);
-        }
-
-        refresh();
-        timeout(50);  // timeout pre getch v input_thread
-        
-        // Čítame vstupy z thread-safe queue namiesto priameho getch()
-        int ch = 0;
-        pthread_mutex_lock(&ctx.input_mutex);
-        if (ctx.input_queue_head > 0) {
-            // Vezmeme prvý vstup z queue
-            ch = ctx.input_queue[0];
-            // Shift všetkých ostatných vstupov doľava
-            for (int i = 0; i < ctx.input_queue_head - 1; i++) {
-                ctx.input_queue[i] = ctx.input_queue[i + 1];
-            }
-            ctx.input_queue_head--;
-        }
-        pthread_mutex_unlock(&ctx.input_mutex);
-
-        if (ch == 'r') {
-            send_command(ctx.active_socket_path ,
-                local_state == UI_INTERACTIVE
-                    ? MSG_SIM_STEP
-                    : MSG_SIM_RUN,
-                x, y
-            );
-        } else if (ch == 'c') {
-            send_command(ctx.active_socket_path ,MSG_SIM_RESET, x, y);
-        } else if (ch == 'q') {
-            pthread_mutex_lock(&ctx.mutex);
-            ctx.current_state = UI_MENU_MODE;
-            memset(&ctx.stats, 0, sizeof(ctx.stats));
-            pthread_mutex_unlock(&ctx.mutex);
+            handle_summary_mode(&ctx, &current_stats, x, y, K, runs);
         }
         break;
     }

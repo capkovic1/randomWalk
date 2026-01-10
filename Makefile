@@ -10,7 +10,7 @@ SIMULATION_DIR = simulation
 COMMON_DIR = common
 
 # Všetky zdrojové súbory
-CLIENT_SRCS = $(CLIENT_DIR)/main.c $(CLIENT_DIR)/client.c $(CLIENT_DIR)/ui.c
+CLIENT_SRCS = $(CLIENT_DIR)/main.c $(CLIENT_DIR)/client.c $(CLIENT_DIR)/ui.c $(CLIENT_DIR)/menu_handler.c $(CLIENT_DIR)/simulation_handler.c
 SERVER_SRCS = $(SERVER_DIR)/main.c $(SERVER_DIR)/server.c
 SIMULATION_SRCS = $(SIMULATION_DIR)/simulation.c $(SIMULATION_DIR)/walker.c $(SIMULATION_DIR)/world.c
 
@@ -21,7 +21,7 @@ SIMULATION_OBJS = $(SIMULATION_SRCS:.c=.o)
 COMMON_OBJS = $(COMMON_DIR)/ipc.o
 
 # Hlavičkové súbory
-CLIENT_HDRS = $(CLIENT_DIR)/client.h $(CLIENT_DIR)/ui.h
+CLIENT_HDRS = $(CLIENT_DIR)/client.h $(CLIENT_DIR)/ui.h $(CLIENT_DIR)/menu_handler.h $(CLIENT_DIR)/simulation_handler.h
 SERVER_HDRS = $(SERVER_DIR)/server.h $(SERVER_DIR)/server_state.h
 COMMON_HDRS = $(COMMON_DIR)/common.h $(COMMON_DIR)/config.h $(COMMON_DIR)/ipc.h \
               $(COMMON_DIR)/messages.h $(COMMON_DIR)/types.h
