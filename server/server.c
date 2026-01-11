@@ -166,6 +166,8 @@ void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mut
       SimulationConfig new_config = {
         .width = msg->width,
         .height = msg->height,
+        .x = msg->x,
+        .y = msg->y,
         .max_steps_K = msg->max_steps,
         .total_replications = msg->replications,
         .probs = (MoveProbabilities){ msg->probs[0] ,msg->probs[1] ,msg->probs[2] ,msg->probs[3] }

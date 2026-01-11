@@ -33,7 +33,7 @@ Simulation * simulation_create(SimulationConfig config) {
     return NULL;
   }
   
-  Position pos = {5, 5};
+  Position pos =  {config.x , config.y};
   sim->walker = walker_create(pos, config.probs);
   if (!sim->walker) {
     world_destroy(sim->world);

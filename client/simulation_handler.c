@@ -25,34 +25,28 @@ int read_input_from_queue(ClientContext *ctx) {
     return ch;
 }
 
-/**
- * Handle interaktívny mód
- * - Zobrazí svet a štatistiky
- * - Čaká na vstup: r (krok), c (reset), q (menu)
- * - Zobrazí momentálny počet krokov a globálne štatistiky
- */
 void handle_interactive_mode(
     ClientContext *ctx,
     StatsMessage *current_stats,
-    int x, int y, int K __attribute__((unused)), int runs __attribute__((unused))
+    int x, int y, int K, int runs __attribute__((unused))
 ) {
-    // Prvý krát: jasne čistá obrazovka
     static int initialized = 0;
+    
     if (!initialized) {
         clear();
         initialized = 1;
     }
     
-    // Horná časť - interaktívny mód info (len refresh, bez erase)
-    move(1, 2);
+    // ===== HORNÁ ČASŤ =====
+    move(0, 0);
     clrtoeol();
-    mvprintw(1, 2, "INTERAKTIVNY MOD | Start: (%d,%d)", x, y);
+    mvprintw(0, 2, "INTERAKTIVNY MOD | Start:  (%d,%d)", x, y);
     
-    move(2, 2);
+    move(1, 0);
     clrtoeol();
-    mvprintw(2, 2, "r=step, c=reset, q=menu");
+    mvprintw(1, 2, "r=step  c=reset  q=menu");
     
-    // Vykresliť svet
+    // ===== VYKRESLI SVET =====
     int world_height = current_stats->height;
     int world_width = current_stats->width;
     draw_world(
@@ -64,67 +58,37 @@ void handle_interactive_mode(
         current_stats->visited
     );
     
-    // Spodná časť - podrobné štatistiky
-    int stats_y = 3 + world_height + 2;
+    // ===== ŠTATISTIKY (pod svetom) =====
+    int stats_y = 3 + world_height;
     
-    move(stats_y, 2);
+    move(stats_y, 0);
     clrtoeol();
-    mvprintw(stats_y, 2, "=== MOMENTALNY STAV ===");
+    mvprintw(stats_y, 2, "Krokov: %d / %d", current_stats->curr_steps, K);
     
-    move(stats_y + 1, 2);
+    move(stats_y + 1, 0);
     clrtoeol();
-    mvprintw(stats_y + 1, 2, "Krokov: %d/%d | Ciel: [0,0]",
-        current_stats->curr_steps,
-        K
-    );
+    mvprintw(stats_y + 1, 2, "Ciel:  [0,0]");
     
-    move(stats_y + 2, 2);
+    move(stats_y + 2, 0);
     clrtoeol();
-    mvprintw(stats_y + 2, 2, "=== GLOBALNIE STATISTIKY (INIE KLIENTY) ===");
-    
-    move(stats_y + 3, 2);
-    clrtoeol();
-    mvprintw(stats_y + 3, 2, "Celk. behy: %d | Uspechy: %d (%.1f%%)",
-        current_stats->total_runs,
-        current_stats->succ_runs,
-        current_stats->total_runs > 0 ? (current_stats->success_rate_permille / 10.0) : 0.0
-    );
-    
-    move(stats_y + 4, 2);
-    clrtoeol();
-    mvprintw(stats_y + 4, 2, "Celk. krokov: %d | Zvysajuci: %d",
-        current_stats->total_steps,
-        current_stats->remaining_runs
-    );
-    
-    // Ak je simulacia hotova
-    if (current_stats->finished) {
-        move(stats_y + 5, 2);
-        clrtoeol();
-        mvprintw(stats_y + 5, 2, "[SIMULACIA SKONCENA]");
-    }
     
     refresh();
-    timeout(50); // Non-blocking getch
+    timeout(50);
     
     int ch = read_input_from_queue(ctx);
     
     if (ch == 'r') {
-        // One step forward
         send_command(ctx->active_socket_path, MSG_SIM_STEP, x, y);
     } 
     else if (ch == 'c') {
-        // Reset: clear visited, keep obstacles
         initialized = 0;
         StatsMessage reset_response = send_command(ctx->active_socket_path, MSG_SIM_RESET, x, y);
-        // Update local state with reset response (contains fresh visited grid + obstacles)
         pthread_mutex_lock(&ctx->mutex);
         ctx->stats = reset_response;
         pthread_mutex_unlock(&ctx->mutex);
     } 
     else if (ch == 'q') {
-        // Návrat do menu
-        initialized = 0; // Reset na ďalšie spustenie
+        initialized = 0;
         pthread_mutex_lock(&ctx->mutex);
         ctx->current_state = UI_MENU_MODE;
         memset(&ctx->stats, 0, sizeof(ctx->stats));
@@ -132,93 +96,62 @@ void handle_interactive_mode(
     }
 }
 
-/**
- * Handle sumárny mód
- * - Spúšťa N replikácií na serveri
- * - Zobrazí agregované štatistiky
- * - Zobrazí aj krok-za-krokom progres ak sú iní klienti v interaktívnom móde
- * - Čaká na vstup: r (spustiť), c (reset), q (menu)
- */
 void handle_summary_mode(
     ClientContext *ctx,
     StatsMessage *current_stats,
-    int x, int y, int K, int runs
+    int x, int y, int K __attribute__((unused)), int runs __attribute__((unused))
 ) {
-    // Prvý krát: jasne čistá obrazovka
     static int initialized = 0;
-    if (!initialized) {
+    
+    if (! initialized) {
         clear();
         initialized = 1;
     }
     
-    move(1, 2);
+    // ===== HORNÁ ČASŤ =====
+    move(0, 0);
     clrtoeol();
-    mvprintw(1, 2, "SUMARNY MOD | K=%d, replikacie=%d", K, runs);
+    mvprintw(0, 2, "SUMARNY MOD | Start: (%d,%d)", x, y);
     
-    move(2, 2);
+    move(1, 0);
     clrtoeol();
-    mvprintw(2, 2, "r=run, c=reset, q=menu");
+    mvprintw(1, 2, "r=start  c=reset  q=menu");
     
-    // Sumárne štatistiky
-    move(4, 2);
+    // ===== ŠTATISTIKY =====
+    move(3, 0);
     clrtoeol();
-    mvprintw(4, 2, "=== STATISTIKY REPLIKACII ===");
+    mvprintw(3, 2, "Celk. behy: %d", current_stats->total_runs);
     
-    move(5, 2);
+    move(4, 0);
     clrtoeol();
-    mvprintw(5, 2, "Celk. behy: %d/%d | Uspechy: %d",
-        current_stats->total_runs,
-        runs,
-        current_stats->succ_runs
-    );
+    mvprintw(4, 2, "Uspechy: %d", current_stats->succ_runs);
     
-    move(6, 2);
+    move(5, 0);
     clrtoeol();
-    mvprintw(6, 2, "Uspecnost: %.1f%% | Priemer krokov: %.1f",
-        current_stats->total_runs > 0 ? (current_stats->success_rate_permille / 10.0) : 0.0,
-        current_stats->total_runs > 0 ? ((float)current_stats->total_steps / current_stats->total_runs) : 0.0
-    );
+    mvprintw(5, 2, "Uspesnost: %.2f%%", current_stats->success_rate_permille / 10.0f);
     
-    // Indikátor z iných klientov (ak sú v interaktívnom móde)
-    if (current_stats->posX != x || current_stats->posY != y || current_stats->curr_steps > 0) {
-        move(8, 2);
-        clrtoeol();
-        mvprintw(8, 2, "=== INTERAKTIVNY PROGRESS (INIE KLIENTY) ===");
-        
-        move(9, 2);
-        clrtoeol();
-        mvprintw(9, 2, "Pozicia: (%d,%d) | Krokov: %d/%d",
-            current_stats->posX,
-            current_stats->posY,
-            current_stats->curr_steps,
-            K
-        );
-    }
+    move(6, 0);
+    clrtoeol();
+    mvprintw(6, 2, "Priemerne krokov: %.2f", 
+             current_stats->total_runs > 0 ? (double)current_stats->total_steps / current_stats->total_runs : 0);
     
-    // V summary móde: ak je finished alebo remaining_runs == 0, automaticky reset
-    if (current_stats->finished || current_stats->remaining_runs == 0) {
-        if (current_stats->total_runs > 0) {
-            send_command(ctx->active_socket_path, MSG_SIM_RESET, x, y);
-        }
-    }
+    move(7, 0);
+    clrtoeol();
     
     refresh();
-    timeout(50); // Non-blocking getch
+    timeout(50);
     
     int ch = read_input_from_queue(ctx);
     
     if (ch == 'r') {
-        // Spustiť simulácie (sumárny mód)
         send_command(ctx->active_socket_path, MSG_SIM_RUN, x, y);
     } 
     else if (ch == 'c') {
-        // Reset simulácie
-        initialized = 0; // Refresh obrazovku pri resete
+        initialized = 0;
         send_command(ctx->active_socket_path, MSG_SIM_RESET, x, y);
     } 
     else if (ch == 'q') {
-        // Návrat do menu
-        initialized = 0; // Reset na ďalšie spustenie
+        initialized = 0;
         pthread_mutex_lock(&ctx->mutex);
         ctx->current_state = UI_MENU_MODE;
         memset(&ctx->stats, 0, sizeof(ctx->stats));

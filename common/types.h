@@ -32,6 +32,8 @@ typedef struct {
 typedef struct {
   int width;
   int height;
+  int x;
+  int y;
   MoveProbabilities probs;
   int max_steps_K;
   int total_replications;
