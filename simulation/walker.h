@@ -1,3 +1,6 @@
+#ifndef WALKER_H
+#define WALKER_H
+
 #include "world.h"
 
 
@@ -34,3 +37,4 @@ _Bool walker_has_reached_center(const Walker* walker);
 Position walker_get_position(const Walker* walker);
 int walker_get_steps(const Walker* walker);
 Trajectory* walker_simulate_to_center(Walker* walker, World* world, int max_steps);
+#endif 

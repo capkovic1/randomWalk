@@ -53,14 +53,11 @@ _Bool world_remove_obstacle(World *world, Position pos) {
 }
 
 _Bool world_is_accessible(World *world, Position to) {
-  
-
   if (world_is_valid_position(world, to) && world->obstacle[to.y][to.x]==0 ) {
     return 1;
   } else {
     return 0;
   }
-
 }
 
 World* world_generate_random(int width , int height , double obstacle_ratio , Position startPos){
@@ -70,6 +67,7 @@ World* world_generate_random(int width , int height , double obstacle_ratio , Po
   if (obstacle_ratio >= 1) {
     obstacle_ratio /=100;
   }
+  
   int num_of_obstacle = (width * height) * obstacle_ratio;
   Position pos;
 
@@ -85,7 +83,6 @@ World* world_generate_random(int width , int height , double obstacle_ratio , Po
   }
 
   return world;
-
 }
 
 void reset_visited(World * world){
@@ -95,6 +92,7 @@ void reset_visited(World * world){
     }
   }
 }
+
 void reset_obstacles(World * world) {
   for (int i = 0; i < world->height; i++) {
     for (int j = 0; j < world->width; j++) {
@@ -102,17 +100,20 @@ void reset_obstacles(World * world) {
     }
   }
 }
+
+
+//Funkcia vygenerovana AI
 _Bool world_has_path(World *world, Position start) {
     // Ak začíname v cieli, cesta existuje hneď
     if (start.x == 0 && start.y == 0) return 1;
 
-    // 1. Alokácia dočasnej mapy navštívených políčok pre BFS
+    // 1. Alokácia dočasnej mapy navštívených políčok
     _Bool **visited_tmp = malloc(world->height * sizeof(_Bool*));
     for (int i = 0; i < world->height; i++) {
         visited_tmp[i] = calloc(world->width, sizeof(_Bool));
     }
 
-    // 2. Príprava fronty (queue) pre BFS
+    // 2. Príprava fronty 
     Position *queue = malloc(world->width * world->height * sizeof(Position));
     int head = 0, tail = 0;
 
@@ -121,12 +122,12 @@ _Bool world_has_path(World *world, Position start) {
     visited_tmp[start.y][start.x] = 1;
 
     // Smery pohybu: hore, dole, vľavo, vpravo
-    int dx[] = {0, 0, -1, 1};
-    int dy[] = {-1, 1, 0, 0};
+    const int dx[] = {0, 0, -1, 1};
+    const int dy[] = {-1, 1, 0, 0};
 
     _Bool found = 0;
 
-    // 3. Hlavný cyklus BFS
+    // 3. Hlavný cyklus 
     while (head < tail) {
         Position curr = queue[head++];
 
@@ -147,7 +148,6 @@ _Bool world_has_path(World *world, Position start) {
             else if (next.y < 0) next.y = world->height - 1;
 
             // Kontrola, či na novej pozícii nie je prekážka a či sme tam už neboli
-            // Používame [y][x] kvôli tvojej alokácii v world_create
             if (!world->obstacle[next.y][next.x] && !visited_tmp[next.y][next.x]) {
                 visited_tmp[next.y][next.x] = 1;
                 queue[tail++] = next;

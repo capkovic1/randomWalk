@@ -1,24 +1,25 @@
+#pragma once
 
 typedef struct {
-    int x;
-    int y;
+  int x;
+  int y;
 } Position;
 
 typedef enum {
-    MODE_INTERACTIVE,
-    MODE_SUMMARY
+  MODE_INTERACTIVE,
+  MODE_SUMMARY
 } DisplayMode;
 
 typedef enum {
-    DISPLAY_AVERAGE_STEPS,
-    DISPLAY_PROBABILITY
+  DISPLAY_AVERAGE_STEPS,
+  DISPLAY_PROBABILITY
 } DisplayType;
 
 typedef struct {
-    Position pos;
-    Position start_pos;
-    int steps;
-    _Bool reached_center;
+  Position pos;
+  Position start_pos;
+  int steps;
+  _Bool reached_center;
 } WalkerState;
 
 typedef struct {

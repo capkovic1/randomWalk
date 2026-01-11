@@ -10,7 +10,6 @@ typedef struct {
   _Bool** visited;
 } World;
 
-// Deklarácie metód
 World* world_create(int width, int height);
 void world_destroy(World* world);
 _Bool world_is_valid_position(World* world, Position pos);

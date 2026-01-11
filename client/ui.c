@@ -1,10 +1,6 @@
-/**
- * ui.c - NCurses UI rendering functions
- * Displays menus, configuration dialogs, and simulation state
- */
 #include "../common/common.h"
 #include "../common/ipc.h"
-#include "../simulation/simulation.h"
+
 #include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,19 +10,19 @@ int draw_connection_menu(char *room_code) {
     mvprintw(2, 4, "=== PRIPOJENIE K SIMULACII ===");
     mvprintw(4, 6, "1 - Vytvorit novu miestnost (Server)");
     mvprintw(5, 6, "2 - Pripojit sa k existujucej (Klient)");
+    mvprintw(6, 6, "3 - Opustit simulaciu");
     mvprintw(7, 6, "Volba: ");
     refresh();
 
-    timeout(-1); // Blocking input
+    timeout(-1);
     int choice = 0;
     do {
         choice = getch();
-        if (choice != '1' && choice != '2') {
-            choice = 0; // Invalid - retry
+        if (choice != '1' && choice != '2' && choice != '3') {
+            choice = 0;
         }
     } while (choice == 0);
 
-    // Option 1: ask for room code
     if (choice == '1') {
         move(9, 6);
         clrtoeol();
@@ -38,9 +34,15 @@ int draw_connection_menu(char *room_code) {
         getnstr(room_code, 15);
         noecho();
         curs_set(0);
+        return 1;
+    }
+      
+    if (choice == '2'){
+      return 2;
+    } else {
+      return 3;
     }
 
-    return (choice == '1') ? 1 : 2;
 }
 
 UIState draw_mode_menu(int *mode) {
@@ -139,7 +141,7 @@ UIState draw_setup(
             probs[3] = atoi(buf[F_RIGHT]);
             *K = atoi(buf[F_K]);
             *runs = atoi(buf[F_RUNS]);
-            // copy output filename
+        
             if (out_filename && out_filename_len > 0) {
                 strncpy(out_filename, buf[F_FILENAME], out_filename_len - 1);
                 out_filename[out_filename_len-1] = '\0';
@@ -205,14 +207,12 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
         }
     }
     
-    // Y axis labels (left side)
     attron(COLOR_PAIR(4));
     for (int world_y = 0; world_y < height; world_y++) {
         int screen_y = y_offset + (height - 1 - world_y);
         mvprintw(screen_y, 0, "%2d", world_y);
     }
     
-    // X axis labels (bottom) - build single string
     char x_axis[256] = {0};
     int pos = 0;
     for (int world_x = 0; world_x < width && world_x < 50; world_x++) {
@@ -319,7 +319,7 @@ int draw_server_list_menu(char *selected_socket_path) {
             strncpy(selected_socket_path, servers[selected].socket_path, 255);
             free(servers);
             return 1;
-        } else if (ch == 27) { // ESC
+        } else if (ch == 27) { //27 - esc
             free(servers);
             return 0;
         }

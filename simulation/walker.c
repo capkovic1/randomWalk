@@ -62,6 +62,7 @@ _Bool walker_move(Walker *walker, World *world) {
     }
     walker->pos = newPosition;
     walker->steps_made++;
+
     if(walker->pos.x == 0 && walker->pos.y == 0) {
       walker->at_finish = 1;
     }
@@ -84,9 +85,11 @@ _Bool walker_has_reached_center(const Walker *walker) {
 Position walker_get_position(const Walker *walker) {
   return walker->pos;
 }
+
 int walker_get_steps(const Walker *walker) {
   return walker->steps_made;
 }
+
 Trajectory * trajectory_create(int max_length) {
   Trajectory * trajectory = malloc(sizeof(Trajectory));
   if (!trajectory) return NULL;
@@ -119,6 +122,7 @@ void trajectory_add_pos(Trajectory *traj, Position pos) {
 Trajectory * walker_simulate_to_center(Walker * walker , World * world , int max_steps) {
   Trajectory * trajectory = trajectory_create(max_steps);
   trajectory_add_pos(trajectory, walker->start_pos);
+
   if (walker->pos.x ==0 && walker->pos.y == 0) {
     trajectory->finished = 1;
     walker->succ_sim++;

@@ -4,7 +4,7 @@
 #include <ncurses.h>
 #include <pthread.h>
 #include <string.h>
-
+#include "client.h"
 /**
  * Čítanie vstupov z thread-safe queue
  * Vracia: vstupný znak (0 ak queue je prázdna)
@@ -73,11 +73,9 @@ void handle_interactive_mode(
     
     move(stats_y + 1, 2);
     clrtoeol();
-    mvprintw(stats_y + 1, 2, "Krokov: %d/%d | Ciel: [%d,%d]",
+    mvprintw(stats_y + 1, 2, "Krokov: %d/%d | Ciel: [0,0]",
         current_stats->curr_steps,
-        K,
-        world_width / 2,
-        world_height / 2
+        K
     );
     
     move(stats_y + 2, 2);

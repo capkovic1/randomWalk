@@ -58,7 +58,6 @@ int server_is_alive(const char *socket_path) {
     return result;
 }
 
-// Načítaj zoznam dostupných serverov
 ServerInfo* list_available_servers(int *count) {
     FILE *f = fopen(REGISTRY_FILE, "r");
     if (!f) {
@@ -66,11 +65,9 @@ ServerInfo* list_available_servers(int *count) {
         return NULL;
     }
     
-    // Prvý prechod: spočítaj platné servery
     int temp_count = 0;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
-        // Skontroluj, či je socket ešte aktívny
         char socket_path[256] = {0};
         int w, h;
         if (sscanf(line, "%255[^|]|%d|%d", socket_path, &w, &h) == 3) {
@@ -82,7 +79,6 @@ ServerInfo* list_available_servers(int *count) {
     
     rewind(f);
     
-    // Druhý prechod: načítaj platné servery
     ServerInfo *servers = malloc(temp_count * sizeof(ServerInfo));
     if (!servers) {
         fclose(f);

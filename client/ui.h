@@ -1,3 +1,4 @@
+#pragma once
 #include "../common/common.h"
 
 int draw_connection_menu(char* room_code);

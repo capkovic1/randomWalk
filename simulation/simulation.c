@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+
 Statistics * stat_create() {
   Statistics * stats = malloc(sizeof(Statistics));
   if (stats) {
@@ -69,7 +71,6 @@ _Bool simulation_run(Simulation *sim , Position pos) {
       
       Trajectory * traj = walker_simulate_to_center(sim->walker, sim->world, config.max_steps_K);
 
-      // Save trajectory to file if filename provided
       if (sim->filename && strlen(sim->filename) > 0) {
         FILE *f = fopen(sim->filename, "a");
         if (f) {
@@ -101,20 +102,14 @@ _Bool simulate_interactive(Simulation *sim, pthread_mutex_t *mutex) {
     while (1) {
         pthread_mutex_lock(mutex);
         
-        // Kontrola konca
         if (sim->walker->at_finish) {
             pthread_mutex_unlock(mutex);
             break;
         }
 
-        // Vykonaj jeden pohyb
         walker_move(sim->walker, sim->world);
-        
-        // P11: Odomkni, aby iní klienti mohli čítať stats (P10)
         pthread_mutex_unlock(mutex);
-
-        // Krátka pauza, aby to neprebehlo okamžite (P10)
-        usleep(100000); // 0.1 sekundy
+        usleep(100000); 
     }
     return 1;
 }
@@ -151,7 +146,7 @@ void reset_stats(Statistics *stats) {
   stats->total_runs = 0;
   stats->total_steps = 0;
 }
-// Pomocná funkcia na vytvorenie garantovanej mapy
+
 World* create_guaranteed_world(int w, int h, double ratio, Position start) {
     World* world = NULL;
     int max_attempts = 100;
@@ -159,11 +154,10 @@ World* create_guaranteed_world(int w, int h, double ratio, Position start) {
     do {
         if (world) world_destroy(world);
         world = world_generate_random(w, h, ratio, start);
-        if (!world) return NULL; // Fail if malloc fails
+        if (!world) return NULL;
         attempts++;
     } while (!world_has_path(world, start) && attempts < max_attempts);
     
-    // If failed after max attempts, cleanup
     if (attempts >= max_attempts && !world_has_path(world, start)) {
         world_destroy(world);
         return NULL;

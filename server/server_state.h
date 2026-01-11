@@ -1,4 +1,6 @@
+
 #pragma once
+
 #include "../simulation/simulation.h"
 
 typedef struct {

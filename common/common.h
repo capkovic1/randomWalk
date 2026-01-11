@@ -56,18 +56,17 @@ typedef enum {
 } UIState;
 
 typedef struct {
-    StatsMessage stats;           // Aktuálne dáta zo servera (chránené mutexom)
-    pthread_mutex_t mutex;        // Ochrana prístupu k stats
-    int server_fd;                // Otvorený socket (ak chceme trvalé spojenie)
-    int keep_running;             // Signalizácia pre koniec vlákna (receiver, input)
-    UIState current_state;        // Aktuálne menu/mód (chránené mutexom)
-    char active_socket_path[100]; // Cesta k socketu servera
+  StatsMessage stats;           
+  pthread_mutex_t mutex;        
+  int server_fd;                
+  int keep_running;           
+  UIState current_state;        
+  char active_socket_path[100]; 
     
-    // INPUT THREAD QUEUE (P11 - paralelné čítanie vstupov)
-    pthread_mutex_t input_mutex;  // Ochrana vstupnej queue
-    int input_char;               // Posledný vstup (0 ak nič)
-    int input_queue[32];          // Queue vstupov (FIFO)
-    int input_queue_head;         // Počet prvkov v queue
+  pthread_mutex_t input_mutex;  
+  int input_char;             
+  int input_queue[32];          
+  int input_queue_head;         
 } ClientContext;
 
 
