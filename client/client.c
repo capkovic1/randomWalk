@@ -252,7 +252,7 @@ void client_run(void) {
     if (cur_term != NULL) {
         del_curterm(cur_term);
     }
-    
+    _nc_freeall();
     // Bypass all cleanup handlers - let kernel do final cleanup
     _Exit(0);
 }

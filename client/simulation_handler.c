@@ -43,7 +43,7 @@ void handle_interactive_mode(
     mvprintw(2, 0, "========================================");
     
     mvprintw(3, 0, "Start: [%d,%d]  |  Ciel: [0,0]       ", x, y);
-    mvprintw(4, 0, "Klávesy: [r]=step  [c]=reset  [q]=menu");
+    mvprintw(4, 0, "Klávesy: [r]=step   [q]=menu");
     mvprintw(5, 0, "");
     
     // ===== VYKRESLI SVET =====
@@ -84,15 +84,7 @@ void handle_interactive_mode(
     
     if (ch == 'r') {
         send_command(ctx->active_socket_path, MSG_SIM_STEP, x, y);
-    } 
-    else if (ch == 'c') {
-        initialized = 0;
-        StatsMessage reset_response = send_command(ctx->active_socket_path, MSG_SIM_RESET, x, y);
-        pthread_mutex_lock(&ctx->mutex);
-        ctx->stats = reset_response;
-        pthread_mutex_unlock(&ctx->mutex);
-    } 
-    else if (ch == 'q') {
+    } else if (ch == 'q') {
         initialized = 0;
         pthread_mutex_lock(&ctx->mutex);
         ctx->current_state = UI_MENU_MODE;
@@ -119,7 +111,7 @@ void handle_summary_mode(
     mvprintw(2, 0, "========================================");
     
     mvprintw(3, 0, "Start: [%d,%d]  |  Ciel: [0,0]       ", x, y);
-    mvprintw(4, 0, "Klávesy: [r]=spustit  [c]=reset  [q]=menu");
+    mvprintw(4, 0, "Klávesy: [r]=spustit  [q]=menu");
     mvprintw(5, 0, "");
     
     // ===== ŠTATISTIKY =====
@@ -145,12 +137,7 @@ void handle_summary_mode(
     
     if (ch == 'r') {
         send_command(ctx->active_socket_path, MSG_SIM_RUN, x, y);
-    } 
-    else if (ch == 'c') {
-        initialized = 0;
-        send_command(ctx->active_socket_path, MSG_SIM_RESET, x, y);
-    } 
-    else if (ch == 'q') {
+    } else if (ch == 'q') {
         initialized = 0;
         pthread_mutex_lock(&ctx->mutex);
         ctx->current_state = UI_MENU_MODE;

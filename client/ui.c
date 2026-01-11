@@ -24,7 +24,7 @@ int draw_connection_menu(char *room_code) {
     } while (choice == 0);
 
     if (choice == '1') {
-        mvprintw(9, 6, "Zadaj kod miestnosti (max 15 znakov):                          ");
+        mvprintw(9, 6, "Zadaj kod miestnosti (max 15 znakov):     ");
         refresh();
         
         echo();
@@ -191,7 +191,7 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
     char line_buffer[200] = {0};
     strcpy(line_buffer, "+");
     for (int x = 0; x < width; x++) {
-        strcat(line_buffer, "--+");
+        strcat(line_buffer, "---+");
     }
     mvprintw(start_y - 1, start_x, "%-80s", line_buffer);
     
@@ -225,7 +225,7 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
     memset(line_buffer, 0, sizeof(line_buffer));
     strcpy(line_buffer, "+");
     for (int x = 0; x < width; x++) {
-        strcat(line_buffer, "--+");
+        strcat(line_buffer, "---+");
     }
     mvprintw(last_y, start_x, "%-80s", line_buffer);
 }
