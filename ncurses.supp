@@ -1,0 +1,61 @@
+# Valgrind suppression file for ncurses library
+# These are internal allocations that ncurses intentionally doesn't free
+# They are safe and expected behavior
+
+{
+   ncurses_still_reachable_initscr
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:*
+   obj:*/libncurses.so*
+}
+
+{
+   ncurses_still_reachable_newwin
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   obj:*/libncurses.so*
+}
+
+{
+   ncurses_still_reachable_malloc_libncurses
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   obj:*/libncurses.so*
+}
+
+{
+   libtinfo_still_reachable_malloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   obj:*/libtinfo.so*
+}
+
+{
+   libtinfo_still_reachable_calloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   obj:*/libtinfo.so*
+}
+
+{
+   libtinfo_still_reachable_realloc
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   obj:*/libtinfo.so*
+}
+
+{
+   libc_strdup_ncurses
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:strdup
+   obj:*/libtinfo.so*
+}
