@@ -40,7 +40,7 @@ int wait_for_server(const char *socket_path, int max_retries) {
 }
 
 
-  int send_config_to_server(ClientContext *ctx,int x, int y,int width, int height,int K, int runs,int *probs,const char *out_filename,UIState *next_state) {
+  int send_config_to_server(ClientContext *ctx,int x, int y,int width, int height,int K, int runs,int *probs,const char *out_filename,double obstacle_ratio,UIState *next_state) {
   int fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd < 0) {
     show_error_dialog("Nie je mozne vytvorit socket!");
@@ -67,6 +67,7 @@ int wait_for_server(const char *socket_path, int max_retries) {
   configMsg.height = height;
   configMsg.max_steps = K;
   configMsg.replications = runs;
+  configMsg.obstacle_ratio = obstacle_ratio;
   memcpy(configMsg.probs, probs, sizeof(configMsg.probs));
   if (out_filename && out_filename[0] != '\0') {
     strncpy(configMsg.out_filename, out_filename, sizeof(configMsg.out_filename) - 1);

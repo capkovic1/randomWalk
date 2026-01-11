@@ -38,5 +38,6 @@ typedef struct {
   int max_steps_K;
   int total_replications;
   int current_replication;
+  double obstacle_ratio;
   DisplayMode mode;
 } SimulationConfig;

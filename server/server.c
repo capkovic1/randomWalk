@@ -170,7 +170,8 @@ void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mut
         .y = msg->y,
         .max_steps_K = msg->max_steps,
         .total_replications = msg->replications,
-        .probs = (MoveProbabilities){ msg->probs[0] ,msg->probs[1] ,msg->probs[2] ,msg->probs[3] }
+        .probs = (MoveProbabilities){ msg->probs[0] ,msg->probs[1] ,msg->probs[2] ,msg->probs[3] },
+        .obstacle_ratio = msg->obstacle_ratio
         };
 
       state->sim = simulation_create(new_config);

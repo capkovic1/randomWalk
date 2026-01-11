@@ -66,14 +66,14 @@ UIState draw_setup(
     int *x, int *y, int *K, int *runs,
     int *width, int *height,
     int probs[4], int mode,
-    char *out_filename, int out_filename_len
+    char *out_filename, int out_filename_len,
+    double *obstacle_ratio  // ✅ NOVÉ
 ) {
-        enum { F_WIDTH, F_HEIGHT, F_X, F_Y,
+    enum { F_WIDTH, F_HEIGHT, F_X, F_Y,
             F_UP, F_DOWN, F_LEFT, F_RIGHT,
-            F_K, F_RUNS, F_FILENAME, F_COUNT };
+            F_K, F_RUNS, F_OBSTACLE, F_FILENAME, F_COUNT };  // ✅ F_OBSTACLE pridané
 
     static int field = 0;
-
     static char buf[F_COUNT][64];
     static int initialized = 0;
 
@@ -88,7 +88,8 @@ UIState draw_setup(
         snprintf(buf[F_RIGHT], 8, "%d", probs[3]);
         snprintf(buf[F_K], 8, "%d", *K);
         snprintf(buf[F_RUNS], 8, "%d", *runs);
-        snprintf(buf[F_FILENAME], 64, "out.txt");
+        snprintf(buf[F_OBSTACLE], 8, "%.1f", *obstacle_ratio);  // ✅ NOVÉ
+        snprintf(buf[F_FILENAME], 64, "out. txt");
         initialized = 1;
     }
 
@@ -97,26 +98,25 @@ UIState draw_setup(
     noecho();
 
     mvprintw(1, 2, "--- KONFIGURACIA SIMULACIE ---");
-
     mvprintw(3, 2, "Sirka sveta: %s %s", buf[F_WIDTH], field == F_WIDTH ? "<" : "");
-    mvprintw(4, 2, "Vyska sveta: %s %s", buf[F_HEIGHT], field == F_HEIGHT ? "<" : "");
+    mvprintw(4, 2, "Vyska sveta: %s %s", buf[F_HEIGHT], field == F_HEIGHT ? "<" :  "");
     mvprintw(6, 2, "Start X: %s %s", buf[F_X], field == F_X ? "<" : "");
-    mvprintw(7, 2, "Start Y: %s %s", buf[F_Y], field == F_Y ? "<" : "");
-
+    mvprintw(7, 2, "Start Y: %s %s", buf[F_Y], field == F_Y ?  "<" : "");
     mvprintw(9, 2, "Up: %s %s", buf[F_UP], field == F_UP ? "<" : "");
     mvprintw(10, 2, "Down: %s %s", buf[F_DOWN], field == F_DOWN ? "<" : "");
     mvprintw(11, 2, "Left: %s %s", buf[F_LEFT], field == F_LEFT ? "<" : "");
-    mvprintw(12, 2, "Right: %s %s", buf[F_RIGHT], field == F_RIGHT ? "<" : "");
-
+    mvprintw(12, 2, "Right:  %s %s", buf[F_RIGHT], field == F_RIGHT ? "<" : "");
     mvprintw(14, 2, "Max krokov K: %s %s", buf[F_K], field == F_K ? "<" : "");
+    mvprintw(15, 2, "Prekázky %% (0-100): %s %s", buf[F_OBSTACLE], field == F_OBSTACLE ?  "<" : "");  // ✅ NOVÉ
+    
     if (mode == 2) {
-        mvprintw(15, 2, "Replikacie: %s %s", buf[F_RUNS], field == F_RUNS ? "<" : "");
-        mvprintw(16, 2, "Vystupny subor: %s %s", buf[F_FILENAME], field == F_FILENAME ? "<" : "");
+        mvprintw(16, 2, "Replikacie: %s %s", buf[F_RUNS], field == F_RUNS ? "<" : "");
+        mvprintw(17, 2, "Vystupny subor: %s %s", buf[F_FILENAME], field == F_FILENAME ?  "<" : "");
     } else {
-        mvprintw(16, 2, "Vystupny subor: %s %s", buf[F_FILENAME], field == F_FILENAME ? "<" : "");
+        mvprintw(17, 2, "Vystupny subor: %s %s", buf[F_FILENAME], field == F_FILENAME ?  "<" : "");
     }
 
-    mvprintw(17, 2, "ENTER = dalsie | BACKSPACE = mazat | q = spat");
+    mvprintw(18, 2, "ENTER = dalsie | BACKSPACE = mazat | q = spat");
 
     refresh();
     timeout(50);
@@ -140,6 +140,7 @@ UIState draw_setup(
             probs[2] = atoi(buf[F_LEFT]);
             probs[3] = atoi(buf[F_RIGHT]);
             *K = atoi(buf[F_K]);
+            *obstacle_ratio = atof(buf[F_OBSTACLE]);  // ✅ NOVÉ
             *runs = atoi(buf[F_RUNS]);
         
             if (out_filename && out_filename_len > 0) {
@@ -149,7 +150,7 @@ UIState draw_setup(
 
             initialized = 0;
             field = 0;
-            return (mode == 1) ? UI_INTERACTIVE : UI_SUMMARY;
+            return (mode == 1) ? UI_INTERACTIVE :  UI_SUMMARY;
         }
     }
 
@@ -167,18 +168,23 @@ UIState draw_setup(
             }
         }
     } else {
-        if (ch >= '0' && ch <= '9') {
+        if (ch >= 48 && ch <= 57) {  // 0-9 alebo .  pre obstacle_ratio
             int len = strlen(buf[field]);
-            if (len < 6) {
+            if (len < 7) {
                 buf[field][len] = ch;
                 buf[field][len + 1] = '\0';
             }
+        }
+        // ✅ Povolíme aj '.' pre desatinné čísla (obstacle_ratio)
+        if ((field == F_OBSTACLE) && ch == 46 && strlen(buf[field]) < 6) {
+            int len = strlen(buf[field]);
+            buf[field][len] = ch;
+            buf[field][len + 1] = '\0';
         }
     }
 
     return UI_SETUP_SIM;
 }
-
 void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50], _Bool visited[50][50]) {
     int y_offset = 3;
     
