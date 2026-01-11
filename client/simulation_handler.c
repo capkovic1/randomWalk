@@ -44,11 +44,11 @@ void handle_interactive_mode(
     }
     
     // ===== HORNÁ ČASŤ =====
-    mvprintw(0, 2, "╔════════════════════════════════════════╗");
-    mvprintw(1, 2, "║  INTERAKTIVNY MOD - RANDOM WALK        ║");
-    mvprintw(2, 2, "╚════════════════════════════════════════╝");
+    mvprintw(0, 2, "========================================");
+    mvprintw(1, 2, "  INTERAKTIVNY MOD - RANDOM WALK");
+    mvprintw(2, 2, "========================================");
     
-    mvprintw(3, 2, "Start pozicia: [%d, %d]  |  Ciel: [0, 0]", x, y);
+    mvprintw(3, 2, "Start: [%d, %d]  |  Ciel: [0, 0]", x, y);
     mvprintw(4, 2, "Klávesy: [r]=step  [c]=reset  [q]=menu");
     mvprintw(5, 2, "");
     
@@ -67,9 +67,9 @@ void handle_interactive_mode(
     // ===== ŠTATISTIKY (pod svetom) =====
     int stats_y = 3 + 1 + world_height + 2;
     
-    mvprintw(stats_y, 2, "┌─ ŠTATISTIKY ─────────────────────────┐");
-    mvprintw(stats_y + 1, 2, "│ Kroky:         %3d / %d", current_stats->curr_steps, K);
-    mvprintw(stats_y + 2, 2, "│ Pozícia:       [%d, %d]", current_stats->posX, current_stats->posY);
+    mvprintw(stats_y, 2, "[--- STATISTIKY ---]");
+    mvprintw(stats_y + 1, 2, "Kroky:       %3d / %d", current_stats->curr_steps, K);
+    mvprintw(stats_y + 2, 2, "Pozicia:     [%d, %d]", current_stats->posX, current_stats->posY);
     
     int visited_count = 0;
     for (int y_i = 0; y_i < world_height; y_i++) {
@@ -77,8 +77,8 @@ void handle_interactive_mode(
             if (current_stats->visited[y_i][x_i]) visited_count++;
         }
     }
-    mvprintw(stats_y + 3, 2, "│ Navštívené:    %d / %d buniek", visited_count, world_width * world_height);
-    mvprintw(stats_y + 4, 2, "└───────────────────────────────────────┘");
+    mvprintw(stats_y + 3, 2, "Navstivene:  %d / %d buniek", visited_count, world_width * world_height);
+    mvprintw(stats_y + 4, 2, "[-------------------]");
     
     refresh();
     timeout(50);
@@ -123,29 +123,29 @@ void handle_summary_mode(
     }
     
     // ===== HORNÁ ČASŤ =====
-    mvprintw(0, 2, "╔════════════════════════════════════════╗");
-    mvprintw(1, 2, "║  SUMARNY MOD - BATCH SIMULATION        ║");
-    mvprintw(2, 2, "╚════════════════════════════════════════╝");
+    mvprintw(0, 2, "========================================");
+    mvprintw(1, 2, "  SUMARNY MOD - BATCH SIMULATION");
+    mvprintw(2, 2, "========================================");
     
-    mvprintw(3, 2, "Start pozicia: [%d, %d]  |  Ciel: [0, 0]", x, y);
+    mvprintw(3, 2, "Start: [%d, %d]  |  Ciel: [0, 0]", x, y);
     mvprintw(4, 2, "Klávesy: [r]=spustit  [c]=reset  [q]=menu");
     mvprintw(5, 2, "");
     
     // ===== ŠTATISTIKY =====
-    mvprintw(7, 2, "┌─ VÝSLEDKY ────────────────────────────┐");
-    mvprintw(8, 2, "│ Celkové behy:      %3d behov", current_stats->total_runs);
-    mvprintw(9, 2, "│ Úspešné behy:      %3d behov", current_stats->succ_runs);
-    mvprintw(10, 2, "│ Úspešnosť:         %.2f %%", current_stats->success_rate_permille / 10.0f);
+    mvprintw(7, 2, "[--- VYSLEDKY ---]");
+    mvprintw(8, 2, "Celkove behy:    %d behov", current_stats->total_runs);
+    mvprintw(9, 2, "Uspesne behy:    %d behov", current_stats->succ_runs);
+    mvprintw(10, 2, "Uspesnost:       %.2f %%", current_stats->success_rate_permille / 10.0f);
     
     if (current_stats->total_runs > 0) {
         double avg_steps = (double)current_stats->total_steps / current_stats->total_runs;
-        mvprintw(11, 2, "│ Priemer krokov:    %.2f krokov na beh", avg_steps);
+        mvprintw(11, 2, "Priemer krokov:  %.2f krokov/beh", avg_steps);
     } else {
-        mvprintw(11, 2, "│ Priemer krokov:    - (žiadny beh)");
+        mvprintw(11, 2, "Priemer krokov:  - (ziadny beh)");
     }
     
-    mvprintw(12, 2, "│ Zostávajúce:       %3d behov", current_stats->remaining_runs);
-    mvprintw(13, 2, "└───────────────────────────────────────┘");
+    mvprintw(12, 2, "Zostavajuce:     %d behov", current_stats->remaining_runs);
+    mvprintw(13, 2, "[-------------------]");
     
     refresh();
     timeout(50);
