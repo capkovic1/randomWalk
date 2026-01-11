@@ -186,36 +186,56 @@ UIState draw_setup(
     return UI_SETUP_SIM;
 }
 void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50], _Bool visited[50][50]) {
-    int y_offset = 3;
+    int start_y = 3;
+    int start_x = 2;
     
-    for (int world_y = 0; world_y < height; world_y++) {
-        int screen_y = y_offset + (height - 1 - world_y);
-        move(screen_y, 0);
-        clrtoeol();  // Vyčisti riadok pred vykresľovaním
+    // Vykresli horný okraj
+    move(start_y - 1, start_x);
+    clrtoeol();
+    printw("+");
+    for (int x = 0; x < width; x++) {
+        printw("--+");
+    }
+    
+    // Vykresli grid
+    for (int world_y = height - 1; world_y >= 0; world_y--) {
+        int screen_y = start_y + (height - 1 - world_y);
+        
+        move(screen_y, start_x);
+        clrtoeol();
+        printw("|");
         
         for (int world_x = 0; world_x < width; world_x++) {
-            int screen_x = 5 + world_x * 2;
-            
+            // Urči obsah bunky
             if (posX == world_x && posY == world_y) {
-                attron(COLOR_PAIR(1));
-                mvprintw(screen_y, screen_x, "@");
+                attron(COLOR_PAIR(1));  // Farba pre hráča
+                printw(" @ ");
                 attroff(COLOR_PAIR(1));
             } else if (obstacle[world_y][world_x]) {
-                attron(COLOR_PAIR(2));
-                mvprintw(screen_y, screen_x, "#");
+                attron(COLOR_PAIR(2));  // Farba pre prekážky
+                printw(" # ");
                 attroff(COLOR_PAIR(2));
             } else if (visited[world_y][world_x]) {
-                attron(COLOR_PAIR(3));
-                mvprintw(screen_y, screen_x, ".");
+                attron(COLOR_PAIR(3));  // Farba pre navštívené
+                printw(" . ");
                 attroff(COLOR_PAIR(3));
             } else if (world_x == 0 && world_y == 0) {
-                mvprintw(screen_y, screen_x, "O");
+                printw(" O ");  // Cieľ
             } else {
-                mvprintw(screen_y, screen_x, " ");
+                printw("   ");  // Prázdne pole
             }
+            printw("|");
         }
     }
     
+    // Vykresli dolný okraj
+    int last_y = start_y + height;
+    move(last_y, start_x);
+    clrtoeol();
+    printw("+");
+    for (int x = 0; x < width; x++) {
+        printw("--+");
+    }
 }
 void draw_summary(double grid[11][11], int w, int h) {
     clear();

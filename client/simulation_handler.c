@@ -37,17 +37,20 @@ void handle_interactive_mode(
         initialized = 1;
     }
     
+    // Vyčisti všetky riadky pred vykreslením
+    for (int i = 0; i < 30; i++) {
+        move(i, 0);
+        clrtoeol();
+    }
+    
     // ===== HORNÁ ČASŤ =====
-    move(0, 0);
-    clrtoeol();
-    mvprintw(0, 2, "INTERAKTIVNY MOD | Start:  (%d,%d)", x, y);
+    mvprintw(0, 2, "╔════════════════════════════════════════╗");
+    mvprintw(1, 2, "║  INTERAKTIVNY MOD - RANDOM WALK        ║");
+    mvprintw(2, 2, "╚════════════════════════════════════════╝");
     
-    move(1, 0);
-    clrtoeol();
-    mvprintw(1, 2, "r=step  c=reset  q=menu");
-    
-    move(2, 0);
-    clrtoeol();
+    mvprintw(3, 2, "Start pozicia: [%d, %d]  |  Ciel: [0, 0]", x, y);
+    mvprintw(4, 2, "Klávesy: [r]=step  [c]=reset  [q]=menu");
+    mvprintw(5, 2, "");
     
     // ===== VYKRESLI SVET =====
     int world_height = current_stats->height;
@@ -62,18 +65,20 @@ void handle_interactive_mode(
     );
     
     // ===== ŠTATISTIKY (pod svetom) =====
-    int stats_y = 3 + world_height;
+    int stats_y = 3 + 1 + world_height + 2;
     
-    move(stats_y, 0);
-    clrtoeol();
-    mvprintw(stats_y, 2, "Krokov: %d / %d", current_stats->curr_steps, K);
+    mvprintw(stats_y, 2, "┌─ ŠTATISTIKY ─────────────────────────┐");
+    mvprintw(stats_y + 1, 2, "│ Kroky:         %3d / %d", current_stats->curr_steps, K);
+    mvprintw(stats_y + 2, 2, "│ Pozícia:       [%d, %d]", current_stats->posX, current_stats->posY);
     
-    move(stats_y + 1, 0);
-    clrtoeol();
-    mvprintw(stats_y + 1, 2, "Ciel:  [0,0]");
-    
-    move(stats_y + 2, 0);
-    clrtoeol();
+    int visited_count = 0;
+    for (int y_i = 0; y_i < world_height; y_i++) {
+        for (int x_i = 0; x_i < world_width; x_i++) {
+            if (current_stats->visited[y_i][x_i]) visited_count++;
+        }
+    }
+    mvprintw(stats_y + 3, 2, "│ Navštívené:    %d / %d buniek", visited_count, world_width * world_height);
+    mvprintw(stats_y + 4, 2, "└───────────────────────────────────────┘");
     
     refresh();
     timeout(50);
@@ -111,38 +116,36 @@ void handle_summary_mode(
         initialized = 1;
     }
     
+    // Vyčisti všetky riadky pred vykreslením
+    for (int i = 0; i < 30; i++) {
+        move(i, 0);
+        clrtoeol();
+    }
+    
     // ===== HORNÁ ČASŤ =====
-    move(0, 0);
-    clrtoeol();
-    mvprintw(0, 2, "SUMARNY MOD | Start: (%d,%d)", x, y);
+    mvprintw(0, 2, "╔════════════════════════════════════════╗");
+    mvprintw(1, 2, "║  SUMARNY MOD - BATCH SIMULATION        ║");
+    mvprintw(2, 2, "╚════════════════════════════════════════╝");
     
-    move(1, 0);
-    clrtoeol();
-    mvprintw(1, 2, "r=start  c=reset  q=menu");
-    
-    move(2, 0);
-    clrtoeol();
+    mvprintw(3, 2, "Start pozicia: [%d, %d]  |  Ciel: [0, 0]", x, y);
+    mvprintw(4, 2, "Klávesy: [r]=spustit  [c]=reset  [q]=menu");
+    mvprintw(5, 2, "");
     
     // ===== ŠTATISTIKY =====
-    move(3, 0);
-    clrtoeol();
-    mvprintw(3, 2, "Celk. behy: %d", current_stats->total_runs);
+    mvprintw(7, 2, "┌─ VÝSLEDKY ────────────────────────────┐");
+    mvprintw(8, 2, "│ Celkové behy:      %3d behov", current_stats->total_runs);
+    mvprintw(9, 2, "│ Úspešné behy:      %3d behov", current_stats->succ_runs);
+    mvprintw(10, 2, "│ Úspešnosť:         %.2f %%", current_stats->success_rate_permille / 10.0f);
     
-    move(4, 0);
-    clrtoeol();
-    mvprintw(4, 2, "Uspechy: %d", current_stats->succ_runs);
+    if (current_stats->total_runs > 0) {
+        double avg_steps = (double)current_stats->total_steps / current_stats->total_runs;
+        mvprintw(11, 2, "│ Priemer krokov:    %.2f krokov na beh", avg_steps);
+    } else {
+        mvprintw(11, 2, "│ Priemer krokov:    - (žiadny beh)");
+    }
     
-    move(5, 0);
-    clrtoeol();
-    mvprintw(5, 2, "Uspesnost: %.2f%%", current_stats->success_rate_permille / 10.0f);
-    
-    move(6, 0);
-    clrtoeol();
-    mvprintw(6, 2, "Priemerne krokov: %.2f", 
-             current_stats->total_runs > 0 ? (double)current_stats->total_steps / current_stats->total_runs : 0);
-    
-    move(7, 0);
-    clrtoeol();
+    mvprintw(12, 2, "│ Zostávajúce:       %3d behov", current_stats->remaining_runs);
+    mvprintw(13, 2, "└───────────────────────────────────────┘");
     
     refresh();
     timeout(50);
@@ -162,6 +165,8 @@ void handle_summary_mode(
         ctx->current_state = UI_MENU_MODE;
         memset(&ctx->stats, 0, sizeof(ctx->stats));
         pthread_mutex_unlock(&ctx->mutex);
+    }
+}
     }
 }
     }
