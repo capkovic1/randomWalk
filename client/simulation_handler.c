@@ -46,6 +46,9 @@ void handle_interactive_mode(
     clrtoeol();
     mvprintw(1, 2, "r=step  c=reset  q=menu");
     
+    move(2, 0);
+    clrtoeol();
+    
     // ===== VYKRESLI SVET =====
     int world_height = current_stats->height;
     int world_width = current_stats->width;
@@ -117,6 +120,9 @@ void handle_summary_mode(
     clrtoeol();
     mvprintw(1, 2, "r=start  c=reset  q=menu");
     
+    move(2, 0);
+    clrtoeol();
+    
     // ===== ŠTATISTIKY =====
     move(3, 0);
     clrtoeol();
@@ -156,5 +162,7 @@ void handle_summary_mode(
         ctx->current_state = UI_MENU_MODE;
         memset(&ctx->stats, 0, sizeof(ctx->stats));
         pthread_mutex_unlock(&ctx->mutex);
+    }
+}
     }
 }

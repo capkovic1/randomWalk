@@ -10,6 +10,10 @@
 #include <string.h>
 #include <ncurses.h>
 #include <stdlib.h>
+#include <term.h>
+
+// Internal ncurses cleanup function
+extern void _nc_freeall(void);
 
 
 StatsMessage send_command(const char* socket_path, MessageType type, int x, int y) {
@@ -242,5 +246,13 @@ void client_run(void) {
     pthread_join(input_tid, NULL);
     pthread_mutex_destroy(&ctx.mutex);
     pthread_mutex_destroy(&ctx.input_mutex);
-    endwin(); 
+    
+    // Complete ncurses cleanup
+    endwin();
+    if (cur_term != NULL) {
+        del_curterm(cur_term);
+    }
+    
+    // Bypass all cleanup handlers - let kernel do final cleanup
+    _Exit(0);
 }

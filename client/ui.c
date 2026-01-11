@@ -189,26 +189,29 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
     int y_offset = 3;
     
     for (int world_y = 0; world_y < height; world_y++) {
+        int screen_y = y_offset + (height - 1 - world_y);
+        move(screen_y, 0);
+        clrtoeol();  // Vyčisti riadok pred vykresľovaním
+        
         for (int world_x = 0; world_x < width; world_x++) {
-            int screen_y = y_offset + (height - 1 - world_y);
             int screen_x = 5 + world_x * 2;
             
             if (posX == world_x && posY == world_y) {
                 attron(COLOR_PAIR(1));
-                mvprintw(screen_y, screen_x, " @ ");
+                mvprintw(screen_y, screen_x, "@");
                 attroff(COLOR_PAIR(1));
             } else if (obstacle[world_y][world_x]) {
                 attron(COLOR_PAIR(2));
-                mvprintw(screen_y, screen_x, " # ");
+                mvprintw(screen_y, screen_x, "#");
                 attroff(COLOR_PAIR(2));
             } else if (visited[world_y][world_x]) {
                 attron(COLOR_PAIR(3));
-                mvprintw(screen_y, screen_x, " . ");
+                mvprintw(screen_y, screen_x, ".");
                 attroff(COLOR_PAIR(3));
             } else if (world_x == 0 && world_y == 0) {
-              mvprintw(screen_y, screen_x, " O ");
+                mvprintw(screen_y, screen_x, "O");
             } else {
-                mvprintw(screen_y, screen_x, "   ");
+                mvprintw(screen_y, screen_x, " ");
             }
         }
     }
