@@ -139,7 +139,7 @@ void client_run(void) {
   int probs[4] = {25, 25, 25, 25};
   int height = 11, width = 11;
   char out_filename[128] = {0};
-  double obstacle_ratio;
+  double obstacle_ratio = 0.0;
 
   pthread_t receiver_tid, input_tid;
   pthread_create(&receiver_tid, NULL, receiver_thread_func, &ctx);
@@ -182,7 +182,7 @@ void client_run(void) {
 
     case UI_SETUP_SIM: {
       timeout(-1);  
-      UIState next = draw_setup(&x, &y, &K, &runs,&width, &height,probs, mode,out_filename, sizeof(out_filename), obstacle_ratio);
+      UIState next = draw_setup(&x, &y, &K, &runs,&width, &height,probs, mode,out_filename, sizeof(out_filename), &obstacle_ratio);
 
       if (next == UI_SETUP_SIM) {
         break; 

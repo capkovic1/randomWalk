@@ -82,7 +82,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mut
 
     } else if (msg->type == MSG_SIM_STEP) {
       
-      walker_move(state->sim->walker, state->sim->world);
+     while(!walker_move(state->sim->walker, state->sim->world));
         
         
       if (state->sim->walker->at_finish) {
@@ -182,7 +182,7 @@ void handle_message(ServerState *state, int client_fd, Message *msg, pthread_mut
       }
 
       world_destroy(state->sim->world);
-      state->sim->world = create_guaranteed_world(msg->width , msg->height, 0.1, (Position){msg->x, msg->y});
+      state->sim->world = create_guaranteed_world(msg->width , msg->height, msg->obstacle_ratio, (Position){msg->x, msg->y});
       state->start_x = msg->x;
       state->start_y = msg->y;
 

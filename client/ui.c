@@ -213,20 +213,6 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
         }
     }
     
-    attron(COLOR_PAIR(4));
-    for (int world_y = 0; world_y < height; world_y++) {
-        int screen_y = y_offset + (height - 1 - world_y);
-        mvprintw(screen_y, 0, "%2d", world_y);
-    }
-    
-    char x_axis[256] = {0};
-    int pos = 0;
-    for (int world_x = 0; world_x < width && world_x < 50; world_x++) {
-        pos += snprintf(x_axis + pos, sizeof(x_axis) - pos, "%2d", world_x);
-    }
-    mvprintw(y_offset + height, 5, "%s", x_axis);
-    
-    attroff(COLOR_PAIR(4));
 }
 void draw_summary(double grid[11][11], int w, int h) {
     clear();
