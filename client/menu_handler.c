@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 void show_error_dialog(const char *message) {
-  clear();
+  erase();
   mvprintw(5, 5, "CHYBA: %s", message);
   mvprintw(7, 5, "Stlac lubovolnu klavesu...");
   refresh();

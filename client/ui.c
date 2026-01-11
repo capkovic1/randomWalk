@@ -6,7 +6,7 @@
 #include <string.h>
 
 int draw_connection_menu(char *room_code) {
-    clear();
+    erase();
     mvprintw(2, 4, "=== PRIPOJENIE K SIMULACII ===");
     mvprintw(4, 6, "1 - Vytvorit novu miestnost (Server)");
     mvprintw(5, 6, "2 - Pripojit sa k existujucej (Klient)");
@@ -24,9 +24,7 @@ int draw_connection_menu(char *room_code) {
     } while (choice == 0);
 
     if (choice == '1') {
-        move(9, 6);
-        clrtoeol();
-        printw("Zadaj kod miestnosti (max 15 znakov): ");
+        mvprintw(9, 6, "Zadaj kod miestnosti (max 15 znakov):                          ");
         refresh();
         
         echo();
@@ -46,7 +44,7 @@ int draw_connection_menu(char *room_code) {
 }
 
 UIState draw_mode_menu(int *mode) {
-    clear();
+    erase();
     mvprintw(2, 4, "Random Walk Simulation");
     mvprintw(4, 6, "1 - Interaktivny mod");
     mvprintw(5, 6, "2 - Sumarny mod");
@@ -98,16 +96,16 @@ UIState draw_setup(
     noecho();
 
     mvprintw(1, 2, "--- KONFIGURACIA SIMULACIE ---");
-    mvprintw(3, 2, "Sirka sveta: %s %s", buf[F_WIDTH], field == F_WIDTH ? "<" : "");
-    mvprintw(4, 2, "Vyska sveta: %s %s", buf[F_HEIGHT], field == F_HEIGHT ? "<" :  "");
-    mvprintw(6, 2, "Start X: %s %s", buf[F_X], field == F_X ? "<" : "");
-    mvprintw(7, 2, "Start Y: %s %s", buf[F_Y], field == F_Y ?  "<" : "");
-    mvprintw(9, 2, "Up: %s %s", buf[F_UP], field == F_UP ? "<" : "");
-    mvprintw(10, 2, "Down: %s %s", buf[F_DOWN], field == F_DOWN ? "<" : "");
-    mvprintw(11, 2, "Left: %s %s", buf[F_LEFT], field == F_LEFT ? "<" : "");
-    mvprintw(12, 2, "Right:  %s %s", buf[F_RIGHT], field == F_RIGHT ? "<" : "");
-    mvprintw(14, 2, "Max krokov K: %s %s", buf[F_K], field == F_K ? "<" : "");
-    mvprintw(15, 2, "Prekázky %% (0-100): %s %s", buf[F_OBSTACLE], field == F_OBSTACLE ?  "<" : "");  // ✅ NOVÉ
+    mvprintw(3, 2, "Sirka sveta: %s %s                                 ", buf[F_WIDTH], field == F_WIDTH ? "<" : "");
+    mvprintw(4, 2, "Vyska sveta: %s %s                                 ", buf[F_HEIGHT], field == F_HEIGHT ? "<" :  "");
+    mvprintw(6, 2, "Start X: %s %s                                     ", buf[F_X], field == F_X ? "<" : "");
+    mvprintw(7, 2, "Start Y: %s %s                                     ", buf[F_Y], field == F_Y ?  "<" : "");
+    mvprintw(9, 2, "Up: %s %s                                          ", buf[F_UP], field == F_UP ? "<" : "");
+    mvprintw(10, 2, "Down: %s %s                                        ", buf[F_DOWN], field == F_DOWN ? "<" : "");
+    mvprintw(11, 2, "Left: %s %s                                        ", buf[F_LEFT], field == F_LEFT ? "<" : "");
+    mvprintw(12, 2, "Right:  %s %s                                      ", buf[F_RIGHT], field == F_RIGHT ? "<" : "");
+    mvprintw(14, 2, "Max krokov K: %s %s                                ", buf[F_K], field == F_K ? "<" : "");
+    mvprintw(15, 2, "Prekázky %% (0-100): %s %s                         ", buf[F_OBSTACLE], field == F_OBSTACLE ?  "<" : "");  // ✅ NOVÉ
     
     if (mode == 2) {
         mvprintw(16, 2, "Replikacie: %s %s", buf[F_RUNS], field == F_RUNS ? "<" : "");
@@ -186,24 +184,21 @@ UIState draw_setup(
     return UI_SETUP_SIM;
 }
 void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50], _Bool visited[50][50]) {
-    int start_y = 3;
-    int start_x = 2;
+    int start_y = 6;
+    int start_x = 0;
     
     // Vykresli horný okraj
-    move(start_y - 1, start_x);
-    clrtoeol();
-    printw("+");
+    mvprintw(start_y - 1, start_x, "+");
     for (int x = 0; x < width; x++) {
         printw("--+");
     }
+    printw("                                    ");
     
     // Vykresli grid
     for (int world_y = height - 1; world_y >= 0; world_y--) {
         int screen_y = start_y + (height - 1 - world_y);
         
-        move(screen_y, start_x);
-        clrtoeol();
-        printw("|");
+        mvprintw(screen_y, start_x, "|");
         
         for (int world_x = 0; world_x < width; world_x++) {
             // Urči obsah bunky
@@ -226,16 +221,16 @@ void draw_world(int height, int width, int posX, int posY, _Bool obstacle[50][50
             }
             printw("|");
         }
+        printw("                          ");
     }
     
     // Vykresli dolný okraj
     int last_y = start_y + height;
-    move(last_y, start_x);
-    clrtoeol();
-    printw("+");
+    mvprintw(last_y, start_x, "+");
     for (int x = 0; x < width; x++) {
         printw("--+");
     }
+    printw("                                    ");
 }
 void draw_summary(double grid[11][11], int w, int h) {
     clear();
@@ -305,7 +300,7 @@ int draw_server_list_menu(char *selected_socket_path) {
     int selected = 0;
     
     while (1) {
-        clear();
+        erase();
         mvprintw(2, 4, "=== DOSTUPNE SERVERY ===");
         mvprintw(3, 4, "(%d servery dostupne)", count);
         
