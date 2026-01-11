@@ -77,7 +77,11 @@ ServerInfo* list_available_servers(int *count) {
         }
     }
     
-    rewind(f);
+    if (temp_count == 0) {
+        fclose(f);
+        *count = 0;
+        return NULL;
+    }
     
     ServerInfo *servers = malloc(temp_count * sizeof(ServerInfo));
     if (!servers) {
@@ -85,6 +89,14 @@ ServerInfo* list_available_servers(int *count) {
         *count = 0;
         return NULL;
     }
+    
+    if (fseek(f, 0, SEEK_SET) != 0) {
+        free(servers);
+        fclose(f);
+        *count = 0;
+        return NULL;
+    }
+    
     int idx = 0;
     
     while (fgets(line, sizeof(line), f) && idx < temp_count) {
@@ -93,6 +105,7 @@ ServerInfo* list_available_servers(int *count) {
         if (sscanf(line, "%255[^|]|%d|%d", socket_path, &w, &h) == 3) {
             if (server_is_alive(socket_path)) {
                 strncpy(servers[idx].socket_path, socket_path, 255);
+                servers[idx].socket_path[255] = '\0';
                 servers[idx].width = w;
                 servers[idx].height = h;
                 idx++;

@@ -62,7 +62,9 @@ _Bool world_is_accessible(World *world, Position to) {
 
 World* world_generate_random(int width , int height , double obstacle_ratio , Position startPos){
   World *world = world_create(width, height);
-
+  if (!world) {
+    return NULL;
+  }
 
   if (obstacle_ratio >= 1) {
     obstacle_ratio /=100;
@@ -73,11 +75,10 @@ World* world_generate_random(int width , int height , double obstacle_ratio , Po
 
   int index = 0;
   while ( index < num_of_obstacle) {
-    
-    pos.x = rand() %width;
-    pos.y = rand() %height;
+    pos.x = rand() % width;
+    pos.y = rand() % height;
 
-    if(world_add_obstacle(world, pos) || (startPos.x == pos.x && startPos.y == pos.y)){
+    if ((pos.x != startPos.x || pos.y != startPos.y) && world_add_obstacle(world, pos)) {
       index++;
     }
   }

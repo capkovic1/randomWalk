@@ -151,17 +151,23 @@ World* create_guaranteed_world(int w, int h, double ratio, Position start) {
     World* world = NULL;
     int max_attempts = 100;
     int attempts = 0;
+    
     do {
         if (world) world_destroy(world);
         world = world_generate_random(w, h, ratio, start);
         if (!world) return NULL;
+        
+        _Bool has_path = world_has_path(world, start);
+        if (has_path) {
+            return world;
+        }
         attempts++;
-    } while (!world_has_path(world, start) && attempts < max_attempts);
+    } while (attempts < max_attempts);
     
-    if (attempts >= max_attempts && !world_has_path(world, start)) {
+    // All attempts failed
+    if (world) {
         world_destroy(world);
-        return NULL;
     }
-    return world;
+    return NULL;
 }
 

@@ -14,17 +14,28 @@
 
 void *batch_run_thread(void *arg) {
   BatchRunArgs *a = (BatchRunArgs*)arg;
+  if (!a || !a->state || !a->state->sim) {
+    if (a) free(a);
+    return NULL;
+  }
+  
   for (int i = 0; i < a->count; i++) {
     pthread_mutex_lock(a->mutex);
-    simulation_run(a->state->sim, a->start);
+    
+    if (a->state->sim) {
+      simulation_run(a->state->sim, a->start);
+    }
+    
     pthread_mutex_unlock(a->mutex);
     usleep(1000); 
   }
 
   // ulozenie vysledkov do suboru
-  if (a->state->sim && a->state->sim->filename && a->state->sim->filename[0] != '\0') {
+  if (a->state && a->state->sim && a->state->sim->filename && a->state->sim->filename[0] != '\0') {
     pthread_mutex_lock(a->mutex);
-    simulation_save_results(a->state->sim, a->state->sim->filename);
+    if (a->state->sim) {
+      simulation_save_results(a->state->sim, a->state->sim->filename);
+    }
     pthread_mutex_unlock(a->mutex);
   }
 

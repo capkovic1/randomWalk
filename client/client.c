@@ -17,27 +17,36 @@ StatsMessage send_command(const char* socket_path, MessageType type, int x, int 
   memset(&stats, 0, sizeof(stats));
 
   int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd < 0) {
+    return stats;
+  }
+  
   struct sockaddr_un addr = {0};
   addr.sun_family = AF_UNIX;
   strncpy(addr.sun_path, socket_path , sizeof(addr.sun_path) - 1);
 
   if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    close(fd);
     return stats; 
   }
 
   Message msg;
   memset(&msg, 0, sizeof(msg));
   msg.type = type; msg.x = x; msg.y = y;
-  write(fd, &msg, sizeof(msg));
+  
+  if (write(fd, &msg, sizeof(msg)) < 0) {
+    close(fd);
+    return stats;
+  }
 
   size_t got = 0;
   while (got < sizeof(stats)) {
-    int r = read(fd, ((char*)&stats) + got,sizeof(stats) - got);
+    int r = read(fd, ((char*)&stats) + got, sizeof(stats) - got);
     if (r <= 0) {
       break;
     }
-      got += r;
-    }
+    got += r;
+  }
 
   close(fd);
   return stats;
