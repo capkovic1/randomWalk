@@ -59,7 +59,10 @@ void handle_interactive_mode(
     );
     
     // ===== ŠTATISTIKY (pod svetom) =====
-    int stats_y = 3 + 1 + world_height + 2;
+    // Riadky 0-5: header (6 riadkov)
+    // Riadky 5-17: grid s top+world_height+bottom
+    // Riadky 19+: štatistiky
+    int stats_y = 6 + 1 + world_height + 1;
     
     mvprintw(stats_y, 0, "[--- STATISTIKY ---]                 ");
     mvprintw(stats_y + 1, 0, "Kroky:       %3d / %d             ", current_stats->curr_steps, K);
