@@ -1,48 +1,50 @@
 {
-   <insert_a_suppression_name_here>
+   ncurses_malloc_libncurses
    Memcheck:Leak
    match-leak-kinds: reachable,possible
    fun:malloc
-   fun:*
    obj:*/libncurses.so*
 }
 {
-   ncurses_libtinfo
+   ncurses_malloc_libtinfo
    Memcheck:Leak
    match-leak-kinds: reachable,possible
    fun:malloc
-   fun:*
    obj:*/libtinfo.so*
 }
 {
-   ncurses_calloc
+   ncurses_calloc_libncurses
    Memcheck:Leak
    match-leak-kinds: reachable,possible
    fun:calloc
-   fun:*
    obj:*/libncurses.so*
 }
 {
-   ncurses_calloc_tinfo
+   ncurses_calloc_libtinfo
    Memcheck:Leak
    match-leak-kinds: reachable,possible
    fun:calloc
-   fun:*
    obj:*/libtinfo.so*
 }
 {
-   ncurses_realloc
+   ncurses_realloc_libncurses
    Memcheck:Leak
    match-leak-kinds: reachable,possible
    fun:realloc
-   fun:*
    obj:*/libncurses.so*
 }
 {
-   ncurses_realloc_tinfo
+   ncurses_realloc_libtinfo
    Memcheck:Leak
    match-leak-kinds: reachable,possible
    fun:realloc
-   fun:*
+   obj:*/libtinfo.so*
+}
+{
+   ncurses_strdup
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   fun:malloc
+   fun:strdup
    obj:*/libtinfo.so*
 }
